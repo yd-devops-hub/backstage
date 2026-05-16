@@ -9,6 +9,7 @@ import {
 import { NavContentBlueprint } from '@backstage/plugin-app-react';
 import { SidebarLogo } from './SidebarLogo';
 import MenuIcon from '@material-ui/icons/Menu';
+import NoteAddOutlinedIcon from '@material-ui/icons/NoteAddOutlined';
 import SearchIcon from '@material-ui/icons/Search';
 import { SidebarSearchModal } from '@backstage/plugin-search';
 import { UserSettingsSignInAvatar } from '@backstage/plugin-user-settings';
@@ -31,9 +32,17 @@ export const SidebarContent = NavContentBlueprint.make({
             <SidebarSearchModal />
           </SidebarGroup>
           <SidebarDivider />
+          <SidebarGroup
+            label="Templates"
+            icon={<NoteAddOutlinedIcon />}
+            to="/create/templates"
+          >
+            {nav.take('page:scaffolder')}
+            {nav.take('page:manage-github-team')}
+          </SidebarGroup>
+          <SidebarDivider />
           <SidebarGroup label="Menu" icon={<MenuIcon />}>
             {nav.take('page:catalog')}
-            {nav.take('page:scaffolder')}
             <SidebarDivider />
             <SidebarScrollWrapper>
               {nav.rest({ sortBy: 'title' })}
