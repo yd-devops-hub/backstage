@@ -1,0 +1,59 @@
+---
+description: Guidelines for Backstage development optimizing for DRY principles, TDD, and the new backend system framework.
+alwaysApply: false
+---
+
+# Backstage Development Rules
+
+## Core Development Philosophy
+
+- **DRY (Don't Repeat Yourself):** Abstract shared logic into common packages, utility functions, or custom hooks.
+- **TDD (Test-Driven Development):** Write tests before implementing features. Ensure robust unit and integration test coverage.
+- **KISS (Keep It Simple, Stupid):** Prefer clear, readable code over clever, overly abstract implementations.
+- **YAGNI (You Aren't Gonna Need It):** Do not over-engineer or add speculative features ahead of actual requirements.
+
+---
+
+## Code Style & TypeScript Standards
+
+- Strict typing is mandatory. Avoid using `any` or `unknown` unless strictly necessary; use explicit types or generics.
+- Prefer functional programming paradigms (immutability, pure functions) where applicable.
+- Use descriptive variable, function, and class names that explicitly state their intent.
+- Export types and interfaces from a centralized `types.ts` file or the module's entry point.
+
+---
+
+## Backstage Architecture
+
+### 1. New Backend System
+
+- All backend functionality must be implemented as Backend Plugins or Modules.
+- Rely exclusively on Dependency Injection via Extension Points and Services (e.g., `coreServices.logger`, `coreServices.database`).
+- Never instantiate database clients or external service clients globally; inject them using the service framework.
+- Structure logic within plugins using a clean architecture: `Router` -> `Service/Controller` -> `Repository/Provider`.
+
+### 2. Frontend (App & Plugins)
+
+- Separate business logic from presentational components using Custom React Hooks.
+- Interact with backend services exclusively via Backstage Utility APIs (`createApiRef`). Never hardcode raw `fetch` or `axios` calls inside UI components.
+- Ensure all components are accessible, adhering to semantic HTML and ARIA standards.
+- Leverage Backstage core components (e.g., `Content`, `Header`, `Page`, `SupportButton`) to maintain UI consistency.
+
+---
+
+## Testing Best Practices (TDD)
+
+- Every new feature, bug fix, or service must be accompanied by corresponding tests (`*.test.ts`, `*.test.tsx`).
+- **Frontend:** Test user behavior and rendered outcomes using `@testing-library/react` rather than implementation details.
+- **Backend:** Use `setupRequestMockHandlers` or MSW (Mock Service Worker) to intercept and mock external HTTP requests.
+- Maintain high test coverage across components, hooks, and utility methods.
+
+---
+
+## Monorepo & Workspace Integrity
+
+- Do not install npm packages globally or in the root `package.json` unless they are repository-wide tooling (e.g., `husky`, `lint-staged`).
+- Always install workspace-specific dependencies within their respective `packages/` directory using:
+  ```bash
+  yarn workspace <workspace-name> add <package>
+  ```
