@@ -28,6 +28,15 @@ backend:
       #   ca: # if you have a CA file and want to verify it you can uncomment this section
       #     $file: <file-path>/ca/server.crt
 
+approvals:
+  defaults:
+    approvers:
+      - group:default/guests
+  actions:
+    github-team-create:
+      approvers:
+        - group:default/guests
+
 auth:
   providers:
     guest: {}

@@ -145,6 +145,15 @@ permission:
   # setting this to `false` will disable permissions
   enabled: true
 
+approvals:
+  defaults:
+    approvers:
+      - group:default/guests
+  actions:
+    github-team-create:
+      approvers:
+        - group:default/guests
+
 # see https://backstage.io/docs/ai/mcp-actions for more details
 mcpActions:
   name: 'My Company Backstage' # defaults to "backstage"

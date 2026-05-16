@@ -12,22 +12,31 @@ describe('ManageGithubTeamPage', () => {
   const server = setupServer();
   registerMswTestHooks(server);
 
-  it('submits team creation to the backend and shows success', async () => {
+  it('submits a github-team-create approval request', async () => {
     const user = userEvent.setup();
     server.use(
-      rest.post('*/api/manage-github-team/create-team', async (req, res, ctx) => {
+      rest.post('*/api/approvals/requests', async (req, res, ctx) => {
         const body = await req.json();
         expect(body).toEqual({
-          teamName: 'my-team',
-          description: 'A test team',
+          actionType: 'github-team-create',
+          payload: { teamName: 'my-team', description: 'A test team' },
         });
         return res(
           ctx.status(201),
           ctx.json({
-            message: 'Created',
-            org: 'yd-devops-hub',
-            githubTeamId: 42,
-            htmlUrl: 'https://github.com/orgs/yd-devops-hub/teams/my-team',
+            id: '11111111-1111-1111-1111-111111111111',
+            actionType: 'github-team-create',
+            requesterRef: 'user:default/guest',
+            payload: body.payload,
+            approverRefs: ['user:default/approver'],
+            status: 'pending',
+            decidedByRef: null,
+            decisionComment: null,
+            decidedAt: null,
+            result: null,
+            error: null,
+            createdAt: new Date().toISOString(),
+            updatedAt: null,
           }),
         );
       }),
@@ -43,21 +52,25 @@ describe('ManageGithubTeamPage', () => {
       await screen.findByRole('textbox', { name: /description/i }),
       'A test team',
     );
-    await user.click(screen.getByRole('button', { name: /create team/i }));
+    await user.click(screen.getByRole('button', { name: /request team creation/i }));
 
     expect(
-      await screen.findByRole('link', { name: /open team on github/i }),
-    ).toHaveAttribute(
+      await screen.findByText(/approval request submitted/i),
+    ).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: /approval 11111111/i })).toHaveAttribute(
       'href',
-      'https://github.com/orgs/yd-devops-hub/teams/my-team',
+      '/approvals/11111111-1111-1111-1111-111111111111',
     );
   });
 
   it('shows an error when the backend returns a failure', async () => {
     const user = userEvent.setup();
     server.use(
-      rest.post('*/api/manage-github-team/create-team', (_req, res, ctx) =>
-        res(ctx.status(503), ctx.json({ error: 'Integration not configured' })),
+      rest.post('*/api/approvals/requests', (_req, res, ctx) =>
+        res(
+          ctx.status(400),
+          ctx.json({ error: 'Unknown approval action type: bad' }),
+        ),
       ),
     );
 
@@ -67,10 +80,10 @@ describe('ManageGithubTeamPage', () => {
       await screen.findByRole('textbox', { name: /team name/i }),
       'my-team',
     );
-    await user.click(screen.getByRole('button', { name: /create team/i }));
+    await user.click(screen.getByRole('button', { name: /request team creation/i }));
 
     expect(
-      await screen.findByText('Integration not configured'),
+      await screen.findByText('Unknown approval action type: bad'),
     ).toBeInTheDocument();
   });
 });

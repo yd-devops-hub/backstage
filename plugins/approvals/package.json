@@ -1,5 +1,5 @@
 {
-  "name": "@internal/backstage-plugin-manage-github-team",
+  "name": "@internal/backstage-plugin-approvals",
   "version": "0.1.0",
   "license": "UNLICENSED",
   "private": true,
@@ -12,7 +12,7 @@
   },
   "backstage": {
     "role": "frontend-plugin",
-    "pluginId": "manage-github-team"
+    "pluginId": "approvals"
   },
   "sideEffects": false,
   "scripts": {
@@ -27,9 +27,7 @@
   "dependencies": {
     "@backstage/core-components": "^0.18.9",
     "@backstage/frontend-plugin-api": "^0.16.0",
-    "@backstage/theme": "^0.7.3",
     "@backstage/ui": "^0.14.0",
-    "@internal/backstage-plugin-approvals": "workspace:^",
     "@material-ui/icons": "^4.9.1",
     "react-use": "^17.2.4"
   },
@@ -39,8 +37,6 @@
   },
   "devDependencies": {
     "@backstage/cli": "^0.36.1",
-    "@backstage/frontend-defaults": "^0.5.1",
-    "@backstage/frontend-dev-utils": "^0.1.1",
     "@backstage/frontend-test-utils": "^0.5.2",
     "@testing-library/jest-dom": "^6.0.0",
     "@testing-library/react": "^14.0.0",
