@@ -1,53 +1,39 @@
-import { useApi, fetchApiRef } from '@backstage/frontend-plugin-api';
-import { useCallback } from 'react';
-import type { CreateTeamSuccessResponse } from '../types';
+import { useSubmitApprovalRequest } from '@internal/backstage-plugin-approvals';
+
+import type { CreateTeamSubmittedResponse } from '../types';
 
 export type CreateTeamResult =
-  | { ok: true; data: CreateTeamSuccessResponse }
+  | { ok: true; data: CreateTeamSubmittedResponse }
   | { ok: false; error: string };
 
 /**
- * Calls manage-github-team-backend `POST /create-team`.
+ * Submits a GitHub team creation via the approvals backend (`github-team-create`).
  */
 export function useCreateGithubTeam() {
-  const { fetch } = useApi(fetchApiRef);
+  const { submit, submitting } = useSubmitApprovalRequest('github-team-create');
 
-  const createTeam = useCallback(
-    async (teamName: string, description?: string): Promise<CreateTeamResult> => {
-      const response = await fetch(
-        'plugin://manage-github-team/create-team',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            teamName,
-            ...(description ? { description } : {}),
-          }),
-        },
-      );
+  const createTeam = async (
+    teamName: string,
+    description?: string,
+  ): Promise<CreateTeamResult> => {
+    const result = await submit({
+      teamName,
+      ...(description ? { description } : {}),
+    });
+    if (!result.ok) {
+      return result;
+    }
+    const d = result.data;
+    return {
+      ok: true,
+      data: {
+        id: d.id,
+        status: d.status,
+        actionType: d.actionType,
+        createdAt: d.createdAt,
+      },
+    };
+  };
 
-      let body: unknown;
-      try {
-        body = await response.json();
-      } catch {
-        body = undefined;
-      }
-
-      if (!response.ok) {
-        const message =
-          typeof body === 'object' &&
-          body !== null &&
-          'error' in body &&
-          typeof (body as { error: unknown }).error === 'string'
-            ? (body as { error: string }).error
-            : `Request failed (${response.status})`;
-        return { ok: false, error: message };
-      }
-
-      return { ok: true, data: body as CreateTeamSuccessResponse };
-    },
-    [fetch],
-  );
-
-  return { createTeam };
+  return { createTeam, submitting };
 }

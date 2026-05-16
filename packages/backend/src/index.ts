@@ -7,6 +7,10 @@
  */
 
 import { createBackend } from '@backstage/backend-defaults';
+import manageGithubTeamBackend, {
+  manageGithubTeamApprovalsModule,
+} from '@internal/backstage-plugin-manage-github-team-backend';
+import approvalsBackend from '@internal/backstage-plugin-approvals-backend';
 
 const backend = createBackend();
 
@@ -69,5 +73,7 @@ backend.add(import('@backstage/plugin-signals-backend'));
 // mcp actions plugin
 backend.add(import('@backstage/plugin-mcp-actions-backend'));
 
-backend.add(import('@internal/backstage-plugin-manage-github-team-backend'));
+backend.add(approvalsBackend);
+backend.add(manageGithubTeamBackend);
+backend.add(manageGithubTeamApprovalsModule);
 backend.start();

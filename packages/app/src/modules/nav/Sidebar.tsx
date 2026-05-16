@@ -11,6 +11,8 @@ import { SidebarLogo } from './SidebarLogo';
 import MenuIcon from '@material-ui/icons/Menu';
 import NoteAddOutlinedIcon from '@material-ui/icons/NoteAddOutlined';
 import SearchIcon from '@material-ui/icons/Search';
+import InboxIcon from '@material-ui/icons/Inbox';
+import AssignmentIcon from '@material-ui/icons/Assignment';
 import { SidebarSearchModal } from '@backstage/plugin-search';
 import { UserSettingsSignInAvatar } from '@backstage/plugin-user-settings';
 import { NotificationsSidebarItem } from '@backstage/plugin-notifications';
@@ -39,6 +41,23 @@ export const SidebarContent = NavContentBlueprint.make({
           >
             {nav.take('page:scaffolder')}
             {nav.take('page:manage-github-team')}
+          </SidebarGroup>
+          <SidebarDivider />
+          <SidebarGroup
+            label="Approvals"
+            icon={<AssignmentIcon />}
+            to="/approvals/inbox"
+          >
+            <SidebarItem
+              icon={() => <InboxIcon />}
+              to="/approvals/inbox"
+              text="Inbox"
+            />
+            <SidebarItem
+              icon={() => <AssignmentIcon />}
+              to="/approvals/mine"
+              text="My requests"
+            />
           </SidebarGroup>
           <SidebarDivider />
           <SidebarGroup label="Menu" icon={<MenuIcon />}>

@@ -10,15 +10,16 @@ import {
   TextField,
 } from '@backstage/ui';
 import { FormEvent, useState } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
+
 import { useCreateGithubTeam } from '../../hooks/useCreateGithubTeam';
-import type { CreateTeamSuccessResponse } from '../../types';
+import type { CreateTeamSubmittedResponse } from '../../types';
 
 export const ManageGithubTeamPage = () => {
-  const { createTeam } = useCreateGithubTeam();
+  const { createTeam, submitting } = useCreateGithubTeam();
   const [teamName, setTeamName] = useState('');
   const [description, setDescription] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess] = useState<CreateTeamSuccessResponse | null>(
+  const [success, setSuccess] = useState<CreateTeamSubmittedResponse | null>(
     null,
   );
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +35,6 @@ export const ManageGithubTeamPage = () => {
       return;
     }
 
-    setSubmitting(true);
     try {
       const desc = description.trim();
       const result = await createTeam(
@@ -50,8 +50,6 @@ export const ManageGithubTeamPage = () => {
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unexpected error');
-    } finally {
-      setSubmitting(false);
     }
   };
 
@@ -62,28 +60,32 @@ export const ManageGithubTeamPage = () => {
           <form onSubmit={handleSubmit} noValidate>
             <Flex direction="column" gap="4">
               <Box>
-                Creates a team in your GitHub organization using the GitHub
-                integration (for example a GitHub App) configured in Backstage.
+                Requests creation of a team in your GitHub organization. A
+                configured approver must approve the request in Backstage
+                before the team is created on GitHub.
               </Box>
               {error ? (
-                <Alert status="danger" title="Could not create team" icon>
+                <Alert status="danger" title="Could not submit request" icon>
                   <Box>{error}</Box>
                 </Alert>
               ) : null}
               {success ? (
-                <Alert status="success" title={success.message} icon>
+                <Alert
+                  status="success"
+                  title="Approval request submitted"
+                  icon
+                >
                   <Flex direction="column" gap="2">
                     <Box>
-                      Organization: {success.org} · Team ID:{' '}
-                      {success.githubTeamId}
+                      Your request is <strong>{success.status}</strong>. An
+                      approver will be notified. You can track it under{' '}
+                      <RouterLink to={`/approvals/${success.id}`}>
+                        approval {success.id.slice(0, 8)}…
+                      </RouterLink>
+                      .
                     </Box>
-                    <ButtonLink
-                      href={success.htmlUrl}
-                      variant="secondary"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      Open team on GitHub
+                    <ButtonLink variant="secondary" href="/approvals/mine">
+                      View my requests
                     </ButtonLink>
                   </Flex>
                 </Alert>
@@ -110,7 +112,7 @@ export const ManageGithubTeamPage = () => {
                   isDisabled={submitting}
                   loading={submitting}
                 >
-                  Create team
+                  Request team creation
                 </Button>
               </Box>
             </Flex>
