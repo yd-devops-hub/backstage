@@ -1,10 +1,12 @@
 export { manageGithubRepoBackendPlugin as default } from './plugin';
+export { manageGithubRepoApprovalsModule } from './module';
 export { manageGithubRepoScaffolderModule } from './scaffolder/module';
 export { GithubRepoService } from './services/GithubRepoService';
 export {
   githubRepoSettingsSchema,
   createRepoBodySchema,
   updateRepoBodySchema,
+  githubRepoSettingsUpdatePayloadSchema,
 } from './schemas/repoSchemas';
 export type { GithubRepoSettings } from './schemas/repoSchemas';
 export {

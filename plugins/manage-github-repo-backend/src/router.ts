@@ -8,10 +8,7 @@ import express from 'express';
 import Router from 'express-promise-router';
 import { z } from 'zod/v3';
 
-import {
-  createRepoBodySchema,
-  updateRepoBodySchema,
-} from './schemas/repoSchemas';
+import { createRepoBodySchema } from './schemas/repoSchemas';
 import { GithubRepoService } from './services/GithubRepoService';
 
 function httpStatusForError(err: unknown): number {
@@ -61,32 +58,6 @@ export async function createGithubRepoRouter(options: {
       const summary = await githubRepos.getRepository(owner, repo);
       res.json(summary);
     } catch (err) {
-      const status = httpStatusForError(err);
-      const message = err instanceof Error ? err.message : String(err);
-      if (status >= 500) {
-        logger.error(message);
-      }
-      res.status(status).json({ error: message });
-    }
-  });
-
-  router.patch('/repos/:owner/:repo', async (req, res) => {
-    try {
-      await httpAuth.credentials(req, { allow: ['user'] });
-      const { owner, repo } = req.params;
-      const body = updateRepoBodySchema.parse(req.body);
-      const summary = await githubRepos.updateRepository(
-        owner,
-        repo,
-        body.settings,
-        logger,
-      );
-      res.json(summary);
-    } catch (err) {
-      if (err instanceof z.ZodError) {
-        res.status(400).json({ error: err.message });
-        return;
-      }
       const status = httpStatusForError(err);
       const message = err instanceof Error ? err.message : String(err);
       if (status >= 500) {

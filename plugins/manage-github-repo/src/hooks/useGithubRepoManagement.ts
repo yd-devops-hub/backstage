@@ -7,10 +7,15 @@ import type {
   CreateGithubRepoPayload,
   GithubRepoSettingsPayload,
   GithubRepoSummary,
+  RepoSettingsUpdateSubmitResult,
 } from '../types';
+
+import { useRequestRepoSettingsUpdate } from './useRequestRepoSettingsUpdate';
 
 export function useGithubRepoManagement() {
   const api = useApi(manageGithubRepoApiRef);
+  const { requestUpdate, submitting: submittingSettingsApproval } =
+    useRequestRepoSettingsUpdate();
   const [presets, setPresets] = useState<BranchRulesetPresetOption[]>([]);
   const [presetsError, setPresetsError] = useState<string | null>(null);
   const [loadingPresets, setLoadingPresets] = useState(true);
@@ -55,15 +60,15 @@ export function useGithubRepoManagement() {
     [api],
   );
 
-  const updateRepo = useCallback(
-    async (
+  const requestRepoSettingsUpdate = useCallback(
+    (
       owner: string,
       repo: string,
       settings: GithubRepoSettingsPayload,
-    ) => {
-      return api.updateRepo(owner.trim(), repo.trim(), settings);
+    ): Promise<RepoSettingsUpdateSubmitResult> => {
+      return requestUpdate(owner.trim(), repo.trim(), settings);
     },
-    [api],
+    [requestUpdate],
   );
 
   return {
@@ -72,7 +77,8 @@ export function useGithubRepoManagement() {
     loadingPresets,
     loadRepo,
     createRepo,
-    updateRepo,
+    requestRepoSettingsUpdate,
+    submittingSettingsApproval,
   };
 }
 

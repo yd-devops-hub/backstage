@@ -7,7 +7,6 @@ import {
 import type {
   BranchRulesetPresetOption,
   CreateGithubRepoPayload,
-  GithubRepoSettingsPayload,
   GithubRepoSummary,
 } from './types';
 
@@ -16,11 +15,6 @@ export type GithubRepoManagementApi = {
   listBranchRulesetPresets(): Promise<{ items: BranchRulesetPresetOption[] }>;
   getRepo(owner: string, repo: string): Promise<GithubRepoSummary>;
   createRepo(payload: CreateGithubRepoPayload): Promise<GithubRepoSummary>;
-  updateRepo(
-    owner: string,
-    repo: string,
-    settings: GithubRepoSettingsPayload,
-  ): Promise<GithubRepoSummary>;
 };
 
 /** @public */
@@ -88,26 +82,6 @@ class GithubRepoManagementClient implements GithubRepoManagementApi {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
-      },
-    );
-    const parsed = await this.parseResponse(response);
-    if (!parsed.ok) {
-      throw new Error(parsed.error);
-    }
-    return parsed.data as GithubRepoSummary;
-  }
-
-  async updateRepo(
-    owner: string,
-    repo: string,
-    settings: GithubRepoSettingsPayload,
-  ): Promise<GithubRepoSummary> {
-    const response = await this.options.fetch(
-      `plugin://manage-github-repo/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`,
-      {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ settings }),
       },
     );
     const parsed = await this.parseResponse(response);

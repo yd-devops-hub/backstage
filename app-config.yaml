@@ -164,6 +164,9 @@ approvals:
     github-team-create:
       approvers:
         - group:default/guests
+    github-repo-settings-update:
+      approvers:
+        - group:default/guests
 
 # see https://backstage.io/docs/ai/mcp-actions for more details
 mcpActions:

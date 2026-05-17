@@ -1,3 +1,5 @@
+import type { ApprovalRequestDto } from '@internal/backstage-plugin-approvals';
+
 /** Mirrors `RepoSummary` from the manage-github-repo backend. */
 export type GithubRepoSummary = {
   owner: string;
@@ -30,3 +32,17 @@ export type CreateGithubRepoPayload = {
   skipDefaultBranchRuleset?: boolean;
   settings?: GithubRepoSettingsPayload;
 };
+
+/**
+ * Returned immediately after submitting repo settings for approval
+ * (GitHub is not updated until an approver approves).
+ */
+export type RepoSettingsUpdateSubmittedResponse = Pick<
+  ApprovalRequestDto,
+  'id' | 'status' | 'actionType' | 'createdAt'
+>;
+
+export type RepoSettingsUpdateSubmitResult =
+  | { ok: true; data: RepoSettingsUpdateSubmittedResponse }
+  | { ok: false; error: string };
+
