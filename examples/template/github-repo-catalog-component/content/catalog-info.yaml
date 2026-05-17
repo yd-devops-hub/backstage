@@ -1,0 +1,12 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: ${{ values.name | dump }}
+  description: ${{ values.description | dump }}
+  # Add after the repo exists so the catalog shows the GitHub repo settings card:
+  # annotations:
+  #   github.com/project-slug: <org>/<repository>
+spec:
+  type: ${{ values.componentType | dump }}
+  owner: ${{ values.owner | dump }}
+  lifecycle: ${{ values.lifecycle | dump }}

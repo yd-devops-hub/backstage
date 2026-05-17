@@ -7,6 +7,9 @@
  */
 
 import { createBackend } from '@backstage/backend-defaults';
+import manageGithubRepoBackend, {
+  manageGithubRepoScaffolderModule,
+} from '@internal/backstage-plugin-manage-github-repo-backend';
 import manageGithubTeamBackend, {
   manageGithubTeamApprovalsModule,
 } from '@internal/backstage-plugin-manage-github-team-backend';
@@ -23,6 +26,7 @@ backend.add(import('@backstage/plugin-scaffolder-backend-module-github'));
 backend.add(
   import('@backstage/plugin-scaffolder-backend-module-notifications'),
 );
+backend.add(manageGithubRepoScaffolderModule);
 
 // techdocs plugin
 backend.add(import('@backstage/plugin-techdocs-backend'));
@@ -74,6 +78,7 @@ backend.add(import('@backstage/plugin-signals-backend'));
 backend.add(import('@backstage/plugin-mcp-actions-backend'));
 
 backend.add(approvalsBackend);
+backend.add(manageGithubRepoBackend);
 backend.add(manageGithubTeamBackend);
 backend.add(manageGithubTeamApprovalsModule);
 backend.start();
