@@ -1,0 +1,139 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: github-repo-catalog-component
+  title: GitHub repository — catalog component
+  description:
+    Create a GitHub repository from a minimal skeleton, apply the organization default
+    branch ruleset (same as manage-github-repo), and register a catalog Component that
+    represents the repo.
+spec:
+  owner: group:default/guests
+  type: website
+
+  parameters:
+    - title: Repository & component
+      required:
+        - name
+        - repoUrl
+      properties:
+        name:
+          title: Component name
+          type: string
+          description: Catalog entity name (Kubernetes-friendly)
+          ui:autofocus: true
+        description:
+          title: Description
+          type: string
+          description: Short description for the catalog Component
+        componentType:
+          title: Component type
+          type: string
+          description: Catalog spec.type (service, library, website, …)
+          default: service
+          enum:
+            - service
+            - library
+            - website
+            - other
+        lifecycle:
+          title: Lifecycle
+          type: string
+          default: experimental
+          enum:
+            - experimental
+            - production
+            - deprecated
+        owner:
+          title: Owner (catalog entity ref)
+          type: string
+          description: 'e.g. group:default/my-team or user:default/your-user'
+          default: group:default/guests
+        repoVisibility:
+          title: Repository visibility
+          type: string
+          description: >-
+            GitHub visibility for the new repository. Use **internal** only on GitHub Enterprise
+            organizations (Enterprise Cloud or EMU); it will fail on github.com Free/Team orgs.
+          default: private
+          enum:
+            - private
+            - internal
+            - public
+          enumNames:
+            - Private
+            - Internal (Enterprise orgs only)
+            - Public
+        repoUrl:
+          title: Repository destination
+          type: string
+          ui:field: RepoUrlPicker
+          ui:options:
+            allowedHosts:
+              - github.com
+
+  steps:
+    - id: fetch-skeleton
+      name: Fetch skeleton
+      action: fetch:template
+      input:
+        url: ./content
+        values:
+          name: ${{ parameters.name }}
+          description: ${{ parameters.description }}
+          componentType: ${{ parameters.componentType }}
+          lifecycle: ${{ parameters.lifecycle }}
+          owner: ${{ parameters.owner }}
+          githubProjectSlug: ${{ parameters.repoUrl | projectSlug }}
+
+    - id: publish
+      name: Publish to GitHub
+      action: publish:github
+      input:
+        description: ${{ parameters.description }}
+        repoUrl: ${{ parameters.repoUrl }}
+        repoVisibility: ${{ parameters.repoVisibility }}
+        defaultBranch: main
+        # Classic branch protection needs GitHub Pro on private repos; use rulesets in the next step instead.
+        protectDefaultBranch: false
+
+    - id: apply-default-ruleset
+      name: Apply default branch ruleset
+      action: github:repo:apply-org-default-ruleset
+      input:
+        repoUrl: ${{ steps.publish.output.remoteUrl }}
+
+    # catalog:registerOrRefresh runs the catalog dry-run pipeline (which fetches
+    # catalog-info.yaml via the GitHub contents API), then persists the location
+    # with onConflict=refresh. It retries internally with exponential backoff on
+    # eventual-consistency 404s and transient 5xx, so no fixed `debug:wait` is
+    # needed before this step.
+    - id: register
+      name: Register in catalog
+      action: catalog:registerOrRefresh
+      input:
+        # Pass the repository root + relative path so the action resolves the
+        # canonical catalog URL via the configured ScmIntegrations.
+        repoContentsUrl: ${{ steps.publish.output.repoContentsUrl }}
+        catalogInfoPath: /catalog-info.yaml
+
+    - id: notify
+      name: Notify
+      action: notification:send
+      input:
+        recipients: entity
+        entityRefs:
+          - user:default/guest
+        title: Repository created
+        info:
+          Component ${{ parameters.name }} registered — default branch ruleset applied on
+          ${{ steps.apply-default-ruleset.output.owner }}/${{ steps.apply-default-ruleset.output.repo }}.
+        severity: normal
+
+  output:
+    links:
+      - title: Repository
+        url: ${{ steps.publish.output.remoteUrl }}
+      - title: Open in catalog
+        icon: catalog
+        entityRef: ${{ steps.register.output.entityRef }}

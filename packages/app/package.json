@@ -38,6 +38,7 @@
     "@backstage/plugin-user-settings": "^0.9.2",
     "@backstage/ui": "^0.14.0",
     "@internal/backstage-plugin-approvals": "workspace:^",
+    "@internal/backstage-plugin-manage-github-repo": "workspace:^",
     "@internal/backstage-plugin-manage-github-team": "workspace:^",
     "@material-ui/core": "^4.12.2",
     "@material-ui/icons": "^4.9.1",

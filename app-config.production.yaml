@@ -57,6 +57,12 @@ catalog:
       rules:
         - allow: [Template]
 
+    # Template: new GitHub repo as catalog Component + default branch ruleset
+    - type: file
+      target: ./examples/template/github-repo-catalog-component/template.yaml
+      rules:
+        - allow: [Template]
+
     # Local example organizational data
     - type: file
       target: ./examples/org.yaml
