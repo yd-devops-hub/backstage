@@ -8,6 +8,7 @@
 
 import { createBackend } from '@backstage/backend-defaults';
 import manageGithubRepoBackend, {
+  manageGithubRepoApprovalsModule,
   manageGithubRepoScaffolderModule,
 } from '@internal/backstage-plugin-manage-github-repo-backend';
 import manageGithubTeamBackend, {
@@ -79,6 +80,7 @@ backend.add(import('@backstage/plugin-mcp-actions-backend'));
 
 backend.add(approvalsBackend);
 backend.add(manageGithubRepoBackend);
+backend.add(manageGithubRepoApprovalsModule);
 backend.add(manageGithubTeamBackend);
 backend.add(manageGithubTeamApprovalsModule);
 backend.start();

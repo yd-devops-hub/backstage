@@ -18,7 +18,8 @@ export function EntityGithubRepoSettingsContent() {
     presetsError,
     loadingPresets,
     loadRepo,
-    updateRepo,
+    requestRepoSettingsUpdate,
+    submittingSettingsApproval,
   } = useGithubRepoManagement();
 
   if (!parsed) {
@@ -33,8 +34,9 @@ export function EntityGithubRepoSettingsContent() {
             GitHub repository settings
           </Box>
           <Box style={{ opacity: 0.85 }}>
-            Driven by <code>github.com/project-slug</code>. Updates use the same
-            GitHub integration as catalog and templates.
+            Driven by <code>github.com/project-slug</code>. Changes are submitted
+            for approval; GitHub is updated only after an approver approves, using
+            the same integration as catalog and templates.
           </Box>
         </Box>
         <GithubRepoSettingsForm
@@ -45,7 +47,8 @@ export function EntityGithubRepoSettingsContent() {
           loadingPresets={loadingPresets}
           presets={presets}
           loadRepo={loadRepo}
-          updateRepo={updateRepo}
+          requestRepoSettingsUpdate={requestRepoSettingsUpdate}
+          submittingSettingsApproval={submittingSettingsApproval}
         />
       </Flex>
     </Container>

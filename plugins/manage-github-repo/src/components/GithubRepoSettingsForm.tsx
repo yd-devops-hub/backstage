@@ -2,18 +2,21 @@ import {
   Alert,
   Box,
   Button,
+  ButtonLink,
   Checkbox,
   Flex,
   TextField,
 } from '@backstage/ui';
-import { toastApiRef, useApi } from '@backstage/frontend-plugin-api';
 import type { FormEvent } from 'react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
 
 import type { GithubRepoSummary } from '../hooks/useGithubRepoManagement';
 import type {
   BranchRulesetPresetOption,
   GithubRepoSettingsPayload,
+  RepoSettingsUpdateSubmittedResponse,
+  RepoSettingsUpdateSubmitResult,
 } from '../types';
 
 function togglePreset(
@@ -35,11 +38,12 @@ type SharedProps = {
   loadingPresets: boolean;
   presets: BranchRulesetPresetOption[];
   loadRepo: (owner: string, repo: string) => Promise<GithubRepoSummary>;
-  updateRepo: (
+  requestRepoSettingsUpdate: (
     owner: string,
     repo: string,
     settings: GithubRepoSettingsPayload,
-  ) => Promise<GithubRepoSummary>;
+  ) => Promise<RepoSettingsUpdateSubmitResult>;
+  submittingSettingsApproval: boolean;
 };
 
 export type GithubRepoSettingsPresetAlerts = 'embedded' | 'none';
@@ -63,13 +67,13 @@ export type GithubRepoSettingsFormProps =
   | GithubRepoSettingsCatalogProps;
 
 export function GithubRepoSettingsForm(props: GithubRepoSettingsFormProps) {
-  const toastApi = useApi(toastApiRef);
   const {
     presetsError,
     loadingPresets,
     presets,
     loadRepo,
-    updateRepo,
+    requestRepoSettingsUpdate,
+    submittingSettingsApproval,
   } = props;
 
   const isCatalog = props.mode === 'catalog';
@@ -85,10 +89,11 @@ export function GithubRepoSettingsForm(props: GithubRepoSettingsFormProps) {
   const [defaultBranch, setDefaultBranch] = useState('');
   const [deleteHead, setDeleteHead] = useState(false);
   const [presetSet, setPresetSet] = useState(() => new Set<string>());
-  const [busy, setBusy] = useState(false);
   const [loadBusy, setLoadBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<GithubRepoSummary | null>(null);
+  const [approvalSubmitted, setApprovalSubmitted] =
+    useState<RepoSettingsUpdateSubmittedResponse | null>(null);
 
   const catalogSlugOwner = props.mode === 'catalog' ? props.catalogOwner : '';
   const catalogSlugRepo =
@@ -103,6 +108,7 @@ export function GithubRepoSettingsForm(props: GithubRepoSettingsFormProps) {
         setDefaultBranch(summary.defaultBranch);
         setDeleteHead(summary.deleteBranchOnMerge);
         setResult(summary);
+        setApprovalSubmitted(null);
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Unexpected error');
       } finally {
@@ -146,39 +152,29 @@ export function GithubRepoSettingsForm(props: GithubRepoSettingsFormProps) {
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);
+    setApprovalSubmitted(null);
     const o = owner.trim();
     const r = repoName.trim();
     if (!o || !r) {
       setError('Owner and repository name are required.');
       return;
     }
-    setBusy(true);
     try {
-      const summary = await updateRepo(o, r, payloadSettings);
-      setResult(summary);
-      toastApi.post({
-        title: 'Repository settings saved',
-        description: `Updates were applied to ${summary.fullName} on GitHub.`,
-        status: 'success',
-        timeout: 6000,
-        ...(summary.htmlUrl
-          ? {
-              links: [
-                { label: 'Open on GitHub', href: summary.htmlUrl },
-              ],
-            }
-          : {}),
-      });
+      const res = await requestRepoSettingsUpdate(o, r, payloadSettings);
+      if (res.ok) {
+        setApprovalSubmitted(res.data);
+        setError(null);
+      } else {
+        setError(res.error);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Unexpected error');
-    } finally {
-      setBusy(false);
     }
   };
 
   const description = isCatalog
-    ? 'Edit default branch behavior and branch-ruleset presets for this catalog entity linked repository.'
-    : 'Update repository settings (default branch, merge behavior, and branch rulesets). Load the repo first to pre-fill fields, then adjust and save.';
+    ? 'Propose changes to default branch behavior and branch-ruleset presets. An approver must approve in Backstage before GitHub is updated.'
+    : 'Propose repository settings changes (default branch, merge behavior, and branch rulesets). Load the repo first to pre-fill fields, then adjust and request an update. An approver must approve before GitHub is updated.';
 
   return (
     <>
@@ -193,13 +189,34 @@ export function GithubRepoSettingsForm(props: GithubRepoSettingsFormProps) {
       <form onSubmit={handleSubmit} noValidate>
         <Flex direction="column" gap="4">
           <Box>{description}</Box>
+          {approvalSubmitted ? (
+            <Alert
+              status="success"
+              title="Approval request submitted"
+              icon
+            >
+              <Flex direction="column" gap="2">
+                <Box>
+                  Your request is <strong>{approvalSubmitted.status}</strong>.
+                  An approver will be notified. Track it under{' '}
+                  <RouterLink to={`/approvals/${approvalSubmitted.id}`}>
+                    approval {approvalSubmitted.id.slice(0, 8)}…
+                  </RouterLink>
+                  .
+                </Box>
+                <ButtonLink variant="secondary" href="/approvals/mine">
+                  View my requests
+                </ButtonLink>
+              </Flex>
+            </Alert>
+          ) : null}
           {error ? (
-            <Alert status="danger" title="Update failed">
+            <Alert status="danger" title="Could not submit request">
               <Box>{error}</Box>
             </Alert>
           ) : null}
           {result && !error ? (
-            <Alert status="info" title="Loaded / saved state">
+            <Alert status="info" title="Current state on GitHub">
               <Flex direction="column" gap="2">
                 <Box>
                   <strong>{result.fullName}</strong>
@@ -317,10 +334,10 @@ export function GithubRepoSettingsForm(props: GithubRepoSettingsFormProps) {
             <Button
               type="submit"
               variant="primary"
-              isDisabled={busy}
-              loading={busy}
+              isDisabled={submittingSettingsApproval}
+              loading={submittingSettingsApproval}
             >
-              Save settings
+              Request settings update
             </Button>
           </Box>
         </Flex>

@@ -36,6 +36,9 @@ approvals:
     github-team-create:
       approvers:
         - group:default/guests
+    github-repo-settings-update:
+      approvers:
+        - group:default/guests
 
 auth:
   providers:

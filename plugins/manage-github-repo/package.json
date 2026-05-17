@@ -28,7 +28,8 @@
     "@backstage/catalog-model": "^1.8.0",
     "@backstage/frontend-plugin-api": "^0.16.0",
     "@backstage/plugin-catalog-react": "^2.1.4",
-    "@backstage/ui": "^0.14.0"
+    "@backstage/ui": "^0.14.0",
+    "@internal/backstage-plugin-approvals": "workspace:^"
   },
   "peerDependencies": {
     "react": "^16.13.1 || ^17.0.0 || ^18.0.0",

@@ -42,3 +42,14 @@ export const updateRepoBodySchema = z.object({
 });
 
 export type UpdateRepoBody = z.infer<typeof updateRepoBodySchema>;
+
+/** Payload for approval-gated repo settings updates (`github-repo-settings-update`). */
+export const githubRepoSettingsUpdatePayloadSchema = z.object({
+  owner: z.string().min(1),
+  repo: z.string().min(1),
+  settings: githubRepoSettingsSchema,
+});
+
+export type GithubRepoSettingsUpdatePayload = z.infer<
+  typeof githubRepoSettingsUpdatePayloadSchema
+>;

@@ -30,6 +30,7 @@
     "@backstage/integration": "^2.0.1",
     "@backstage/plugin-catalog-node": "^2.2.0",
     "@backstage/plugin-scaffolder-node": "^0.13.2",
+    "@internal/backstage-plugin-approvals-backend": "workspace:^",
     "@octokit/request-error": "^7.0.0",
     "@octokit/rest": "^22.0.1",
     "express": "^4.14.0",

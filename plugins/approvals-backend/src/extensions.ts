@@ -8,7 +8,7 @@ export type ActionExecutionContext = {
 };
 
 /**
- * Registered by consumer plugins (e.g. manage-github-team) to define executable
+ * Registered by consumer plugins (e.g. manage-github-team, manage-github-repo) to define executable
  * actions gated by the approvals flow.
  *
  * @public

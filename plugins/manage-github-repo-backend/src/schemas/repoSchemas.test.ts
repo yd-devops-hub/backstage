@@ -1,6 +1,7 @@
 import {
   createRepoBodySchema,
   githubRepoSettingsSchema,
+  githubRepoSettingsUpdatePayloadSchema,
   updateRepoBodySchema,
 } from './repoSchemas';
 
@@ -43,6 +44,20 @@ describe('repoSchemas', () => {
         settings: { deleteBranchOnMerge: false },
       }),
     ).toEqual({
+      settings: { deleteBranchOnMerge: false },
+    });
+  });
+
+  it('parses approval payload for repo settings update', () => {
+    expect(
+      githubRepoSettingsUpdatePayloadSchema.parse({
+        owner: 'acme',
+        repo: 'payments',
+        settings: { deleteBranchOnMerge: false },
+      }),
+    ).toEqual({
+      owner: 'acme',
+      repo: 'payments',
       settings: { deleteBranchOnMerge: false },
     });
   });
