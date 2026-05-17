@@ -84,6 +84,7 @@ spec:
           componentType: ${{ parameters.componentType }}
           lifecycle: ${{ parameters.lifecycle }}
           owner: ${{ parameters.owner }}
+          githubProjectSlug: ${{ parameters.repoUrl | projectSlug }}
 
     - id: publish
       name: Publish to GitHub

@@ -3,9 +3,8 @@ kind: Component
 metadata:
   name: ${{ values.name | dump }}
   description: ${{ values.description | dump }}
-  # Add after the repo exists so the catalog shows the GitHub repo settings card:
-  # annotations:
-  #   github.com/project-slug: <org>/<repository>
+  annotations:
+    github.com/project-slug: ${{ values.githubProjectSlug | dump }}
 spec:
   type: ${{ values.componentType | dump }}
   owner: ${{ values.owner | dump }}
