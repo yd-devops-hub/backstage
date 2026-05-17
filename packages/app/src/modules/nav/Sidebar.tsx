@@ -24,8 +24,11 @@ export const SidebarContent = NavContentBlueprint.make({
         <SidebarItem icon={() => item.icon} to={item.href} text={item.title} />
       ));
 
-      // Skipped items
+      // Skipped items (consume auto nav entries; we render our own links elsewhere)
       nav.take('page:search'); // Using search modal instead
+      nav.take('page:approvals/inbox');
+      nav.take('page:approvals/mine');
+      nav.take('page:approvals/detail');
 
       return (
         <Sidebar>
