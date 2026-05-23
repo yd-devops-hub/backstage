@@ -1,5 +1,6 @@
 import { createApp } from '@backstage/frontend-defaults';
 import catalogPlugin from '@backstage/plugin-catalog/alpha';
+import manageGithubRepoPlugin from '@internal/backstage-plugin-manage-github-repo';
 import { navModule } from './modules/nav';
 import { githubAuthApiRef } from '@backstage/core-plugin-api';
 import { SignInPageBlueprint } from '@backstage/plugin-app-react';
@@ -26,6 +27,7 @@ const signInPage = SignInPageBlueprint.make({
 export default createApp({
   features: [
     catalogPlugin,
+    manageGithubRepoPlugin,
     navModule,
     createFrontendModule({
       pluginId: 'app',

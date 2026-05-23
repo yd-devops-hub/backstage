@@ -7,12 +7,16 @@ import {
 import type {
   BranchRulesetPresetOption,
   CreateGithubRepoPayload,
+  GithubOrgOption,
   GithubRepoSummary,
+  GithubTeamOption,
 } from './types';
 
 /** @public */
 export type GithubRepoManagementApi = {
   listBranchRulesetPresets(): Promise<{ items: BranchRulesetPresetOption[] }>;
+  listGithubOrgs(): Promise<{ items: GithubOrgOption[] }>;
+  listGithubTeams(org: string): Promise<{ items: GithubTeamOption[] }>;
   getRepo(owner: string, repo: string): Promise<GithubRepoSummary>;
   createRepo(payload: CreateGithubRepoPayload): Promise<GithubRepoSummary>;
 };
@@ -47,6 +51,28 @@ class GithubRepoManagementClient implements GithubRepoManagementApi {
       return { ok: false, error: message };
     }
     return { ok: true, data: body };
+  }
+
+  async listGithubOrgs(): Promise<{ items: GithubOrgOption[] }> {
+    const response = await this.options.fetch(
+      'plugin://manage-github-repo/meta/github-orgs',
+    );
+    const parsed = await this.parseResponse(response);
+    if (!parsed.ok) {
+      throw new Error(parsed.error);
+    }
+    return parsed.data as { items: GithubOrgOption[] };
+  }
+
+  async listGithubTeams(org: string): Promise<{ items: GithubTeamOption[] }> {
+    const response = await this.options.fetch(
+      `plugin://manage-github-repo/meta/github-teams/${encodeURIComponent(org)}`,
+    );
+    const parsed = await this.parseResponse(response);
+    if (!parsed.ok) {
+      throw new Error(parsed.error);
+    }
+    return parsed.data as { items: GithubTeamOption[] };
   }
 
   async listBranchRulesetPresets(): Promise<{

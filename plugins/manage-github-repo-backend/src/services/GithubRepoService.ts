@@ -36,6 +36,15 @@ export type BranchRulesetPresetDescription = {
   description: string;
 };
 
+export type GithubTeamSummary = {
+  slug: string;
+  name: string;
+};
+
+export type GithubOrgSummary = {
+  login: string;
+};
+
 type GithubIntegration = {
   integrationConfig: GithubIntegrationConfig;
   credentials: GithubCredentialsProvider;
@@ -66,6 +75,57 @@ function pickGithubIntegration(
   };
 }
 
+function resolveConfiguredOrgs(config: Config): string[] {
+  const orgs = new Set<string>();
+
+  for (const org of config.getOptionalStringArray(
+    'catalog.providers.githubOrg.orgs',
+  ) ?? []) {
+    orgs.add(org);
+  }
+
+  const flatGithubOrgKeys = new Set(['id', 'githubUrl', 'orgs', 'schedule']);
+
+  const githubOrgProviders = config.getOptionalConfig(
+    'catalog.providers.githubOrg',
+  );
+  if (githubOrgProviders) {
+    for (const key of githubOrgProviders.keys()) {
+      if (flatGithubOrgKeys.has(key)) {
+        continue;
+      }
+      const providerConfig = githubOrgProviders.getOptionalConfig(key);
+      if (!providerConfig) {
+        continue;
+      }
+      const org = providerConfig.getOptionalString('organization');
+      if (org) {
+        orgs.add(org);
+      }
+    }
+  }
+
+  const githubProviders = config.getOptionalConfig('catalog.providers.github');
+  if (githubProviders) {
+    for (const key of githubProviders.keys()) {
+      const providerConfig = githubProviders.getOptionalConfig(key);
+      if (!providerConfig) {
+        continue;
+      }
+      const org = providerConfig.getOptionalString('organization');
+      if (org) {
+        orgs.add(org);
+      }
+    }
+  }
+
+  if (orgs.size === 0) {
+    orgs.add(resolveDefaultOrg(config));
+  }
+
+  return [...orgs].sort((a, b) => a.localeCompare(b));
+}
+
 function resolveDefaultOrg(config: Config): string {
   return (
     config.getOptionalString(
@@ -82,11 +142,13 @@ function resolveDefaultOrg(config: Config): string {
 export class GithubRepoService {
   private readonly githubIntegration: GithubIntegration | undefined;
   private readonly defaultOrg: string;
+  private readonly configuredOrgs: string[];
 
   constructor(options: { logger: LoggerService; config: Config }) {
     const { logger, config } = options;
     this.githubIntegration = pickGithubIntegration(config, logger);
     this.defaultOrg = resolveDefaultOrg(config);
+    this.configuredOrgs = resolveConfiguredOrgs(config);
   }
 
   listBranchRulesetPresets(): { items: BranchRulesetPresetDescription[] } {
@@ -96,6 +158,56 @@ export class GithubRepoService {
         description,
       })),
     };
+  }
+
+  async listGithubOrgs(
+    logger: LoggerService,
+  ): Promise<{ items: GithubOrgSummary[] }> {
+    const items: GithubOrgSummary[] = [];
+
+    for (const org of this.configuredOrgs) {
+      try {
+        const octokit = await this.getOctokit(org);
+        await octokit.rest.orgs.get({ org });
+        items.push({ login: org });
+      } catch (error) {
+        logger.warn(
+          `Configured GitHub org "${org}" is unavailable for Backstage repo creation`,
+        );
+      }
+    }
+
+    if (items.length === 0) {
+      throw new InputError(
+        'No GitHub organizations are available. Verify integrations.github and catalog.providers.githubOrg configuration.',
+      );
+    }
+
+    return { items };
+  }
+
+  async listGithubTeams(org: string): Promise<{ items: GithubTeamSummary[] }> {
+    const trimmedOrg = org.trim();
+    if (!trimmedOrg.length) {
+      throw new InputError('Organization is required');
+    }
+
+    const octokit = await this.getOctokit(trimmedOrg);
+    const items: GithubTeamSummary[] = [];
+
+    for await (const response of octokit.paginate.iterator(
+      octokit.rest.teams.list,
+      { org: trimmedOrg, per_page: 100 },
+    )) {
+      for (const team of response.data) {
+        if (team.slug) {
+          items.push({ slug: team.slug, name: team.name });
+        }
+      }
+    }
+
+    items.sort((a, b) => a.name.localeCompare(b.name));
+    return { items };
   }
 
   private async getOctokit(org: string): Promise<Octokit> {

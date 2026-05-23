@@ -4,6 +4,7 @@ import {
   createFrontendPlugin,
 } from '@backstage/frontend-plugin-api';
 import { EntityContentBlueprint } from '@backstage/plugin-catalog-react/alpha';
+import { FormFieldBlueprint } from '@backstage/plugin-scaffolder-react/alpha';
 
 import { manageGithubRepoApiFactory } from './api';
 import { parseGithubProjectSlug } from './lib/githubProjectSlug';
@@ -31,10 +32,28 @@ export const manageGithubRepoApiExtension = ApiBlueprint.make({
   params: defineParams => defineParams(manageGithubRepoApiFactory),
 });
 
+export const githubOrgPickerFormField = FormFieldBlueprint.make({
+  name: 'github-org-picker',
+  params: {
+    field: () =>
+      import('./components/GithubOrgPicker').then(m => m.githubOrgPickerField),
+  },
+});
+
+export const githubTeamPickerFormField = FormFieldBlueprint.make({
+  name: 'github-team-picker',
+  params: {
+    field: () =>
+      import('./components/GithubTeamPicker').then(m => m.githubTeamPickerField),
+  },
+});
+
 export const manageGithubRepoPlugin = createFrontendPlugin({
   pluginId: 'manage-github-repo',
   extensions: [
     manageGithubRepoApiExtension,
     entityGithubRepoSettingsTabExtension,
+    githubOrgPickerFormField,
+    githubTeamPickerFormField,
   ],
 });

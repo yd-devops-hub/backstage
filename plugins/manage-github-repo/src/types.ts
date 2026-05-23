@@ -1,5 +1,14 @@
 import type { ApprovalRequestDto } from '@internal/backstage-plugin-approvals';
 
+export type GithubOrgOption = {
+  login: string;
+};
+
+export type GithubTeamOption = {
+  slug: string;
+  name: string;
+};
+
 /** Mirrors `RepoSummary` from the manage-github-repo backend. */
 export type GithubRepoSummary = {
   owner: string;
