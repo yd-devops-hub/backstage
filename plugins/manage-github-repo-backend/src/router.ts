@@ -31,6 +31,36 @@ export async function createGithubRepoRouter(options: {
     res.json(githubRepos.listBranchRulesetPresets());
   });
 
+  router.get('/meta/github-orgs', async (req, res) => {
+    try {
+      await httpAuth.credentials(req, { allow: ['user'] });
+      const summary = await githubRepos.listGithubOrgs(logger);
+      res.json(summary);
+    } catch (err) {
+      const status = httpStatusForError(err);
+      const message = err instanceof Error ? err.message : String(err);
+      if (status >= 500) {
+        logger.error(message);
+      }
+      res.status(status).json({ error: message });
+    }
+  });
+
+  router.get('/meta/github-teams/:org', async (req, res) => {
+    try {
+      await httpAuth.credentials(req, { allow: ['user'] });
+      const summary = await githubRepos.listGithubTeams(req.params.org);
+      res.json(summary);
+    } catch (err) {
+      const status = httpStatusForError(err);
+      const message = err instanceof Error ? err.message : String(err);
+      if (status >= 500) {
+        logger.error(message);
+      }
+      res.status(status).json({ error: message });
+    }
+  });
+
   router.post('/repos', async (req, res) => {
     try {
       await httpAuth.credentials(req, { allow: ['user'] });
