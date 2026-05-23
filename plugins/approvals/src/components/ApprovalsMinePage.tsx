@@ -1,18 +1,63 @@
 import {
-  Box,
-  Card,
-  CardBody,
-  Container,
-  Flex,
-  Alert,
-} from '@backstage/ui';
-import { Progress } from '@backstage/core-components';
+  Content,
+  EmptyState,
+  InfoCard,
+  Link,
+  LinkButton,
+  Progress,
+  Table,
+  TableColumn,
+  WarningPanel,
+} from '@backstage/core-components';
 import { useApi } from '@backstage/frontend-plugin-api';
-import { Link as RouterLink } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import Grid from '@material-ui/core/Grid';
+import { useEffect, useMemo, useState } from 'react';
 
 import { approvalsApiRef } from '../api';
 import type { ApprovalRequestDto } from '../types';
+import { RequestStatus } from './RequestStatus';
+
+const tableColumns: TableColumn<ApprovalRequestDto>[] = [
+  {
+    title: 'Action',
+    field: 'actionType',
+    highlight: true,
+    width: '40%',
+    render: row => <Link to={`/approvals/${row.id}`}>{row.actionType}</Link>,
+  },
+  {
+    title: 'Status',
+    field: 'status',
+    width: '20%',
+    cellStyle: { whiteSpace: 'nowrap' },
+    render: row => <RequestStatus status={row.status} />,
+  },
+  {
+    title: 'Created',
+    field: 'createdAt',
+    width: '25%',
+    cellStyle: { whiteSpace: 'nowrap' },
+    render: row => new Date(row.createdAt).toLocaleString(),
+  },
+  {
+    title: '',
+    field: 'id',
+    sorting: false,
+    width: '1%',
+    cellStyle: { whiteSpace: 'nowrap', width: '1%' },
+    headerStyle: { whiteSpace: 'nowrap', width: '1%' },
+    render: row => (
+      <LinkButton
+        to={`/approvals/${row.id}`}
+        color="primary"
+        size="small"
+        style={{ whiteSpace: 'nowrap' }}
+      >
+        View
+      </LinkButton>
+    ),
+  },
+];
 
 export const ApprovalsMinePage = () => {
   const api = useApi(approvalsApiRef);
@@ -36,38 +81,49 @@ export const ApprovalsMinePage = () => {
     };
   }, [api]);
 
+  const rows = useMemo(() => items ?? [], [items]);
+
   if (!items && !error) {
     return <Progress />;
   }
 
   return (
-    <Container>
-      <Card>
-        <CardBody>
-          <Flex direction="column" gap="4">
-            <Box>Your submitted approval requests.</Box>
-            {error ? (
-              <Alert status="danger" title="Error" icon>
-                {error}
-              </Alert>
-            ) : null}
-            <Flex direction="column" gap="3">
-              {(items ?? []).map(row => (
-                <Card key={row.id}>
-                  <CardBody>
-                    <Flex direction="column" gap="1">
-                      <RouterLink to={`/approvals/${row.id}`}>
-                        <strong>{row.actionType}</strong> · {row.status}
-                      </RouterLink>
-                      <Box>Created: {new Date(row.createdAt).toLocaleString()}</Box>
-                    </Flex>
-                  </CardBody>
-                </Card>
-              ))}
-            </Flex>
-          </Flex>
-        </CardBody>
-      </Card>
-    </Container>
+    <Content>
+      <Grid container spacing={3}>
+        {error ? (
+          <Grid item xs={12}>
+            <WarningPanel severity="error" title="Error" message={error} />
+          </Grid>
+        ) : null}
+
+        <Grid item xs={12}>
+          <InfoCard
+            title="My approval requests"
+            subheader="Your submitted approval requests"
+          >
+            {rows.length === 0 ? (
+              <EmptyState
+                title="No approval requests"
+                missing="data"
+                description="You have not submitted any approval requests yet."
+              />
+            ) : (
+              <Table
+                columns={tableColumns}
+                data={rows}
+                options={{
+                  search: false,
+                  paging: true,
+                  pageSize: 10,
+                  toolbar: false,
+                  padding: 'dense',
+                  tableLayout: 'auto',
+                }}
+              />
+            )}
+          </InfoCard>
+        </Grid>
+      </Grid>
+    </Content>
   );
 };

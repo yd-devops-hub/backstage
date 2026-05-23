@@ -1,19 +1,152 @@
 import {
-  Box,
-  Button,
-  Card,
-  CardBody,
-  Container,
-  Flex,
-  Alert,
-} from '@backstage/ui';
-import { Progress } from '@backstage/core-components';
-import { useApi } from '@backstage/frontend-plugin-api';
+  CodeSnippet,
+  Content,
+  InfoCard,
+  LinkButton,
+  Progress,
+  StructuredMetadataTable,
+  WarningPanel,
+} from '@backstage/core-components';
+import { useApi, useRouteRef } from '@backstage/frontend-plugin-api';
+import Button from '@material-ui/core/Button';
+import Grid from '@material-ui/core/Grid';
+import ArrowBackIcon from '@material-ui/icons/ArrowBack';
 import { useParams } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { approvalsApiRef } from '../api';
+import { mineRouteRef } from '../routes';
 import type { ApprovalRequestDto } from '../types';
+import { RequestStatus } from './RequestStatus';
+
+function formatJson(value: unknown): string {
+  return JSON.stringify(value, null, 2);
+}
+
+function BackToMineLink() {
+  const minePagePath = useRouteRef(mineRouteRef)();
+
+  return (
+    <LinkButton
+      to={minePagePath}
+      startIcon={<ArrowBackIcon />}
+      color="primary"
+    >
+      Back to my approval requests
+    </LinkButton>
+  );
+}
+
+function JsonSection({ title, value }: { title: string; value: unknown }) {
+  return (
+    <InfoCard title={title}>
+      <CodeSnippet
+        language="json"
+        text={formatJson(value)}
+        showCopyCodeButton
+        customStyle={{ margin: 0, fontSize: '0.8125rem' }}
+      />
+    </InfoCard>
+  );
+}
+
+function RequestOverview({ row }: { row: ApprovalRequestDto }) {
+  const metadata = useMemo(() => {
+    const entries: Record<string, string> = {
+      Requester: row.requesterRef,
+      Created: new Date(row.createdAt).toLocaleString(),
+    };
+
+    if (row.decidedAt) {
+      entries.Decided = new Date(row.decidedAt).toLocaleString();
+    }
+    if (row.decidedByRef) {
+      entries['Decided by'] = row.decidedByRef;
+    }
+    if (row.decisionComment) {
+      entries.Comment = row.decisionComment;
+    }
+
+    return entries;
+  }, [row]);
+
+  return (
+    <InfoCard
+      title={row.actionType}
+      subheader={`Request ID: ${row.id}`}
+      action={<RequestStatus status={row.status} />}
+    >
+      <StructuredMetadataTable metadata={metadata} dense />
+    </InfoCard>
+  );
+}
+
+function ApprovalDetailContent({
+  row,
+  error,
+  busy,
+  onCancel,
+}: {
+  row: ApprovalRequestDto;
+  error: string | null;
+  busy: boolean;
+  onCancel: () => Promise<void>;
+}) {
+  return (
+    <Grid container spacing={3}>
+      <Grid item xs={12}>
+        <BackToMineLink />
+      </Grid>
+
+      {error ? (
+        <Grid item xs={12}>
+          <WarningPanel severity="error" title="Error" message={error} />
+        </Grid>
+      ) : null}
+
+      <Grid item xs={12}>
+        <RequestOverview row={row} />
+      </Grid>
+
+      <Grid item xs={12}>
+        <JsonSection title="Payload" value={row.payload} />
+      </Grid>
+
+      {row.result ? (
+        <Grid item xs={12}>
+          <JsonSection title="Result" value={row.result} />
+        </Grid>
+      ) : null}
+
+      {row.error ? (
+        <Grid item xs={12}>
+          <WarningPanel
+            severity="error"
+            title="Execution error"
+            message={row.error}
+          />
+        </Grid>
+      ) : null}
+
+      {row.status === 'pending' ? (
+        <Grid item xs={12}>
+          <InfoCard title="Actions">
+            <Button
+              variant="outlined"
+              color="secondary"
+              disabled={busy}
+              onClick={() => {
+                void onCancel();
+              }}
+            >
+              Cancel request
+            </Button>
+          </InfoCard>
+        </Grid>
+      ) : null}
+    </Grid>
+  );
+}
 
 export const ApprovalDetailPage = () => {
   const { requestId } = useParams();
@@ -40,84 +173,70 @@ export const ApprovalDetailPage = () => {
     };
   }, [api, requestId]);
 
+  const handleCancel = async () => {
+    if (!row) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await api.cancel(row.id);
+      setRow(await api.getRequest(row.id));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (!requestId) {
-    return <Alert status="danger" title="Missing id" icon />;
+    return (
+      <Content>
+        <Grid container spacing={3}>
+          <Grid item xs={12}>
+            <BackToMineLink />
+          </Grid>
+          <Grid item xs={12}>
+            <WarningPanel severity="error" title="Missing id" />
+          </Grid>
+        </Grid>
+      </Content>
+    );
   }
 
   if (!row && !error) {
     return <Progress />;
   }
 
-  if (error || !row) {
+  if (error && !row) {
     return (
-      <Container>
-        <Alert status="danger" title="Could not load request" icon>
-          {error}
-        </Alert>
-      </Container>
+      <Content>
+        <Grid container spacing={3}>
+          <Grid item xs={12}>
+            <BackToMineLink />
+          </Grid>
+          <Grid item xs={12}>
+            <WarningPanel
+              severity="error"
+              title="Could not load request"
+              message={error}
+            />
+          </Grid>
+        </Grid>
+      </Content>
     );
   }
 
+  if (!row) {
+    return <Progress />;
+  }
+
   return (
-    <Container>
-      <Card>
-        <CardBody>
-          <Flex direction="column" gap="4">
-            <Box>
-              <strong>{row.actionType}</strong> · {row.status}
-            </Box>
-            <Box>Requester: {row.requesterRef}</Box>
-            <Box>Created: {new Date(row.createdAt).toLocaleString()}</Box>
-            {row.decidedAt ? (
-              <Box>Decided: {new Date(row.decidedAt).toLocaleString()}</Box>
-            ) : null}
-            {row.decisionComment ? (
-              <Box>Comment: {row.decisionComment}</Box>
-            ) : null}
-            <Box>
-              Payload:
-              <pre style={{ whiteSpace: 'pre-wrap' }}>
-                {JSON.stringify(row.payload, null, 2)}
-              </pre>
-            </Box>
-            {row.result ? (
-              <Box>
-                Result:
-                <pre style={{ whiteSpace: 'pre-wrap' }}>
-                  {JSON.stringify(row.result, null, 2)}
-                </pre>
-              </Box>
-            ) : null}
-            {row.error ? (
-              <Alert status="danger" title="Error" icon>
-                {row.error}
-              </Alert>
-            ) : null}
-            {row.status === 'pending' ? (
-              <Flex gap="2">
-                <Button
-                  variant="secondary"
-                  isDisabled={busy}
-                  onPress={async () => {
-                    setBusy(true);
-                    setError(null);
-                    try {
-                      await api.cancel(row.id);
-                      setRow(await api.getRequest(row.id));
-                    } catch (e) {
-                      setError(e instanceof Error ? e.message : String(e));
-                    } finally {
-                      setBusy(false);
-                    }
-                  }}
-                >
-                  Cancel request
-                </Button>
-              </Flex>
-            ) : null}
-          </Flex>
-        </CardBody>
-      </Card>
-    </Container>
+    <Content>
+      <ApprovalDetailContent
+        row={row}
+        error={error}
+        busy={busy}
+        onCancel={handleCancel}
+      />
+    </Content>
   );
 };
