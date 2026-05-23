@@ -29,9 +29,6 @@ backend.add(
 );
 backend.add(manageGithubRepoScaffolderModule);
 
-// techdocs plugin
-backend.add(import('@backstage/plugin-techdocs-backend'));
-
 // auth plugin
 backend.add(import('@backstage/plugin-auth-backend'));
 backend.add(import('@backstage/plugin-auth-backend-module-github-provider'));
@@ -66,10 +63,6 @@ backend.add(import('@backstage/plugin-search-backend-module-pg'));
 
 // search collators
 backend.add(import('@backstage/plugin-search-backend-module-catalog'));
-backend.add(import('@backstage/plugin-search-backend-module-techdocs'));
-
-// kubernetes plugin
-backend.add(import('@backstage/plugin-kubernetes-backend'));
 
 // notifications and signals plugins
 backend.add(import('@backstage/plugin-notifications-backend'));
