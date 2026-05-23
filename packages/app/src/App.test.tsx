@@ -1,5 +1,5 @@
 import { render, waitFor } from '@testing-library/react';
-import App from './App';
+import app from './App';
 
 describe('App', () => {
   it('should render', async () => {
@@ -8,7 +8,10 @@ describe('App', () => {
       APP_CONFIG: [
         {
           data: {
-            app: { title: 'Test' },
+            app: {
+              title: 'Test',
+              support: { url: 'http://localhost:7007/support' },
+            },
             backend: { baseUrl: 'http://localhost:7007' },
           },
           context: 'test',
@@ -16,8 +19,7 @@ describe('App', () => {
       ] as any,
     };
 
-    const rendered = render(App.createRoot());
-
+    const rendered = render(app);
     await waitFor(() => {
       expect(rendered.baseElement).toBeInTheDocument();
     });

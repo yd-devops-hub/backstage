@@ -194,3 +194,6 @@ dist-storybook/
 
 # Database
 database/postgres_data/
+
+# Demo
+demo/

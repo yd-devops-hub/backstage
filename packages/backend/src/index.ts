@@ -15,6 +15,7 @@ import manageGithubTeamBackend, {
   manageGithubTeamApprovalsModule,
 } from '@internal/backstage-plugin-manage-github-team-backend';
 import approvalsBackend from '@internal/backstage-plugin-approvals-backend';
+import { catalogGithubOrgTeamLabelsModule } from './modules/catalogGithubOrgTeamLabels';
 
 const backend = createBackend();
 
@@ -32,9 +33,7 @@ backend.add(manageGithubRepoScaffolderModule);
 // auth plugin
 backend.add(import('@backstage/plugin-auth-backend'));
 backend.add(import('@backstage/plugin-auth-backend-module-github-provider'));
-// See https://backstage.io/docs/backend-system/building-backends/migrating#the-auth-plugin
 backend.add(import('@backstage/plugin-auth-backend-module-guest-provider'));
-// See https://backstage.io/docs/auth/guest/provider
 
 // catalog plugin
 backend.add(import('@backstage/plugin-catalog-backend'));
@@ -43,30 +42,40 @@ backend.add(
 );
 backend.add(import('@backstage/plugin-catalog-backend-module-github'));
 backend.add(import('@backstage/plugin-catalog-backend-module-github-org'));
-
-// See https://backstage.io/docs/features/software-catalog/configuration#subscribing-to-catalog-errors
+backend.add(catalogGithubOrgTeamLabelsModule);
 backend.add(import('@backstage/plugin-catalog-backend-module-logs'));
+
+// community plugins supporting demo UI
+backend.add(import('@backstage-community/plugin-badges-backend'));
+backend.add(import('@backstage-community/plugin-explore-backend'));
+
+// techdocs plugin
+backend.add(import('@backstage/plugin-techdocs-backend'));
+
+// kubernetes plugin
+backend.add(import('@backstage/plugin-kubernetes-backend'));
 
 // permission plugin
 backend.add(import('@backstage/plugin-permission-backend'));
-// See https://backstage.io/docs/permissions/getting-started for how to create your own permission policy
 backend.add(
   import('@backstage/plugin-permission-backend-module-allow-all-policy'),
 );
 
 // search plugin
 backend.add(import('@backstage/plugin-search-backend'));
-
-// search engine
-// See https://backstage.io/docs/features/search/search-engines
 backend.add(import('@backstage/plugin-search-backend-module-pg'));
-
-// search collators
 backend.add(import('@backstage/plugin-search-backend-module-catalog'));
+backend.add(
+  import('@backstage-community/plugin-search-backend-module-explore'),
+);
 
 // notifications and signals plugins
 backend.add(import('@backstage/plugin-notifications-backend'));
 backend.add(import('@backstage/plugin-signals-backend'));
+
+// events plugin
+backend.add(import('@backstage/plugin-events-backend'));
+backend.add(import('@backstage/plugin-events-backend-module-github'));
 
 // mcp actions plugin
 backend.add(import('@backstage/plugin-mcp-actions-backend'));

@@ -1,16 +1,14 @@
-import { Select } from '@backstage/core-components';
 import { useApi } from '@backstage/core-plugin-api';
 import type { FieldExtensionComponentProps } from '@backstage/plugin-scaffolder-react';
-import FormControl from '@material-ui/core/FormControl';
-import FormHelperText from '@material-ui/core/FormHelperText';
 import { useEffect, useMemo, useState } from 'react';
 
 import { manageGithubRepoApiRef } from '../../api';
+import { ScaffolderAsyncSelect } from '../scaffolder/ScaffolderAsyncSelect';
 
 export const GithubOrgPicker = (
   props: FieldExtensionComponentProps<string>,
 ) => {
-  const { onChange, rawErrors, formData, schema, required } = props;
+  const { onChange, formData } = props;
 
   const api = useApi(manageGithubRepoApiRef);
   const [orgs, setOrgs] = useState<{ login: string }[]>([]);
@@ -55,7 +53,7 @@ export const GithubOrgPicker = (
     };
   }, [api, formData, onChange]);
 
-  const items = useMemo(
+  const options = useMemo(
     () =>
       orgs.map(org => ({
         label: org.login,
@@ -64,33 +62,19 @@ export const GithubOrgPicker = (
     [orgs],
   );
 
-  const helperText =
-    loadError ??
-    schema.description ??
-    'GitHub organizations where the Backstage GitHub App is installed.';
-
   return (
-    <FormControl
-      margin="normal"
-      required={required}
-      error={Boolean(rawErrors?.length) && !formData}
-      fullWidth
-    >
-      <Select
-        native
-        label={schema.title ?? 'Owner'}
-        disabled={loading || items.length === 0}
-        selected={formData ?? ''}
-        onChange={value =>
-          onChange(String(Array.isArray(value) ? value[0] : value))
-        }
-        items={
-          items.length > 0
-            ? items
-            : [{ label: loading ? 'Loading…' : 'No organizations found', value: '' }]
-        }
-      />
-      <FormHelperText>{helperText}</FormHelperText>
-    </FormControl>
+    <ScaffolderAsyncSelect
+      fieldProps={props}
+      options={options}
+      defaultTitle="Owner"
+      defaultDescription={
+        loadError ??
+        'GitHub organizations where the Backstage GitHub App is installed.'
+      }
+      emptyLabel={
+        loading ? 'Loading…' : loadError ?? 'No organizations found'
+      }
+      selectDisabled={loading || options.length === 0}
+    />
   );
 };

@@ -30,8 +30,8 @@
     "@backstage/core-plugin-api": "^1.12.5",
     "@backstage/frontend-plugin-api": "^0.16.0",
     "@backstage/plugin-catalog-react": "^2.1.4",
-    "@backstage/plugin-scaffolder-react": "^1.20.1",
-    "@backstage/ui": "^0.14.0",
+    "@backstage/plugin-scaffolder-react": "^2.0.0",
+    "@backstage/ui": "^0.15.0",
     "@internal/backstage-plugin-approvals": "workspace:^",
     "@material-ui/core": "^4.12.2",
     "zod": "^3.22.4"

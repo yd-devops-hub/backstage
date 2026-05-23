@@ -1,19 +1,22 @@
 import {
-  Box,
-  Button,
-  Card,
-  CardBody,
-  Container,
-  Flex,
-  Alert,
-} from '@backstage/ui';
-import { Progress } from '@backstage/core-components';
+  Content,
+  EmptyState,
+  InfoCard,
+  Link,
+  LinkButton,
+  Progress,
+  Table,
+  TableColumn,
+  WarningPanel,
+} from '@backstage/core-components';
 import { useApi } from '@backstage/frontend-plugin-api';
-import { Link as RouterLink } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import Button from '@material-ui/core/Button';
+import Grid from '@material-ui/core/Grid';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { approvalsApiRef } from '../api';
 import type { ApprovalRequestDto } from '../types';
+import { RequestStatus } from './RequestStatus';
 
 export const ApprovalsInboxPage = () => {
   const api = useApi(approvalsApiRef);
@@ -38,90 +41,157 @@ export const ApprovalsInboxPage = () => {
     };
   }, [api]);
 
+  const handleApprove = useCallback(
+    async (id: string) => {
+      setBusyId(id);
+      setError(null);
+      try {
+        await api.approve(id);
+        setItems(prev => prev?.filter(item => item.id !== id));
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e));
+      } finally {
+        setBusyId(null);
+      }
+    },
+    [api],
+  );
+
+  const handleReject = useCallback(
+    async (id: string) => {
+      setBusyId(id);
+      setError(null);
+      try {
+        await api.reject(id, 'Rejected from inbox');
+        setItems(prev => prev?.filter(item => item.id !== id));
+      } catch (e) {
+        setError(e instanceof Error ? e.message : String(e));
+      } finally {
+        setBusyId(null);
+      }
+    },
+    [api],
+  );
+
+  const columns = useMemo<TableColumn<ApprovalRequestDto>[]>(
+    () => [
+      {
+        title: 'Action',
+        field: 'actionType',
+        highlight: true,
+        width: '30%',
+        render: row => (
+          <Link to={`/approvals/${row.id}`}>{row.actionType}</Link>
+        ),
+      },
+      {
+        title: 'Status',
+        field: 'status',
+        width: '15%',
+        cellStyle: { whiteSpace: 'nowrap' },
+        render: row => <RequestStatus status={row.status} />,
+      },
+      {
+        title: 'Requester',
+        field: 'requesterRef',
+        width: '25%',
+      },
+      {
+        title: 'Created',
+        field: 'createdAt',
+        width: '20%',
+        cellStyle: { whiteSpace: 'nowrap' },
+        render: row => new Date(row.createdAt).toLocaleString(),
+      },
+      {
+        title: '',
+        field: 'id',
+        sorting: false,
+        width: '1%',
+        cellStyle: { whiteSpace: 'nowrap', width: '1%' },
+        headerStyle: { whiteSpace: 'nowrap', width: '1%' },
+        render: row => (
+          <div style={{ display: 'flex', gap: 8, whiteSpace: 'nowrap' }}>
+            <Button
+              variant="contained"
+              color="primary"
+              size="small"
+              disabled={busyId !== null}
+              onClick={() => {
+                void handleApprove(row.id);
+              }}
+            >
+              Approve
+            </Button>
+            <Button
+              variant="outlined"
+              color="secondary"
+              size="small"
+              disabled={busyId !== null}
+              onClick={() => {
+                void handleReject(row.id);
+              }}
+            >
+              Reject
+            </Button>
+            <LinkButton
+              to={`/approvals/${row.id}`}
+              color="primary"
+              size="small"
+              style={{ whiteSpace: 'nowrap' }}
+            >
+              View
+            </LinkButton>
+          </div>
+        ),
+      },
+    ],
+    [busyId, handleApprove, handleReject],
+  );
+
+  const rows = useMemo(() => items ?? [], [items]);
+
   if (!items && !error) {
     return <Progress />;
   }
 
   return (
-    <Container pt="6">
-      <Card>
-        <CardBody>
-          <Flex direction="column" gap="4">
-            <Box>Pending requests where you are an approver.</Box>
-            {error ? (
-              <Alert status="danger" title="Error" icon>
-                {error}
-              </Alert>
-            ) : null}
-            <Flex direction="column" gap="3">
-              {(items ?? []).map(row => (
-                <Card key={row.id}>
-                  <CardBody>
-                    <Flex direction="column" gap="2">
-                      <Box>
-                        <strong>{row.actionType}</strong> · {row.status}
-                      </Box>
-                      <Box>Requester: {row.requesterRef}</Box>
-                      <Box>
-                        Created: {new Date(row.createdAt).toLocaleString()}
-                      </Box>
-                      <Flex gap="2">
-                        <Button
-                          variant="primary"
-                          size="small"
-                          isDisabled={busyId !== null}
-                          onPress={async () => {
-                            setBusyId(row.id);
-                            setError(null);
-                            try {
-                              await api.approve(row.id);
-                              setItems(prev => prev?.filter(i => i.id !== row.id));
-                            } catch (e) {
-                              setError(
-                                e instanceof Error ? e.message : String(e),
-                              );
-                            } finally {
-                              setBusyId(null);
-                            }
-                          }}
-                        >
-                          Approve
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          size="small"
-                          isDisabled={busyId !== null}
-                          onPress={async () => {
-                            setBusyId(row.id);
-                            setError(null);
-                            try {
-                              await api.reject(row.id, 'Rejected from inbox');
-                              setItems(prev =>
-                                prev?.filter(i => i.id !== row.id),
-                              );
-                            } catch (e) {
-                              setError(
-                                e instanceof Error ? e.message : String(e),
-                              );
-                            } finally {
-                              setBusyId(null);
-                            }
-                          }}
-                        >
-                          Reject
-                        </Button>
-                        <RouterLink to={`/approvals/${row.id}`}>
-                          Details
-                        </RouterLink>
-                      </Flex>
-                    </Flex>
-                  </CardBody>
-                </Card>
-              ))}
-            </Flex>
-          </Flex>
-        </CardBody>
-      </Card>
-    </Container>
+    <Content>
+      <Grid container spacing={3}>
+        {error ? (
+          <Grid item xs={12}>
+            <WarningPanel severity="error" title="Error" message={error} />
+          </Grid>
+        ) : null}
+
+        <Grid item xs={12}>
+          <InfoCard
+            title="Approvals inbox"
+            subheader="Pending requests where you are an approver"
+          >
+            {rows.length === 0 ? (
+              <EmptyState
+                title="No pending approvals"
+                missing="data"
+                description="You have no approval requests waiting for your decision."
+              />
+            ) : (
+              <Table
+                columns={columns}
+                data={rows}
+                options={{
+                  search: false,
+                  paging: true,
+                  pageSize: 10,
+                  toolbar: false,
+                  padding: 'dense',
+                  tableLayout: 'auto',
+                }}
+              />
+            )}
+          </InfoCard>
+        </Grid>
+      </Grid>
+    </Content>
   );
 };

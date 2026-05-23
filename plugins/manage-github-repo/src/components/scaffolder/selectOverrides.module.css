@@ -1,0 +1,5 @@
+/* Match scaffolder BUI SelectWidget border-radius for form consistency. */
+
+.select [class*='bui-SelectTrigger'] {
+  border-radius: var(--bui-radius-2);
+}
