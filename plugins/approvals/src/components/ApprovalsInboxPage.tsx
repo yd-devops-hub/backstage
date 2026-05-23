@@ -43,7 +43,7 @@ export const ApprovalsInboxPage = () => {
   }
 
   return (
-    <Container>
+    <Container pt="6">
       <Card>
         <CardBody>
           <Flex direction="column" gap="4">

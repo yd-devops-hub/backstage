@@ -1,0 +1,39 @@
+:root,
+[data-theme-mode='light'] {
+  --bui-font-regular: "Helvetica Neue", Helvetica, Roboto, Arial, sans-serif;
+  --bui-font-weight-regular: 400;
+  --bui-font-weight-bold: 700;
+  --bui-black: #000;
+  --bui-white: #fff;
+  --bui-fg-primary: rgba(0, 0, 0, 0.87);
+  --bui-fg-secondary: #6E6E6E;
+  --bui-fg-disabled: rgba(0, 0, 0, 0.38);
+  --bui-fg-solid: #fff;
+  --bui-fg-solid-disabled: rgba(0, 0, 0, 0.38);
+  --bui-fg-danger: #d32f2f;
+  --bui-fg-warning: #ed6c02;
+  --bui-fg-success: #2e7d32;
+  --bui-fg-info: #0288d1;
+  --bui-fg-danger-on-bg: #c62828;
+  --bui-fg-warning-on-bg: #e65100;
+  --bui-fg-success-on-bg: #1b5e20;
+  --bui-fg-info-on-bg: #01579b;
+  --bui-bg-app: #F8F8F8;
+  --bui-bg-neutral-1: #FFFFFF;
+  --bui-bg-neutral-2: #F8F8F8;
+  --bui-bg-neutral-3: #F8F8F8;
+  --bui-bg-solid: #1F5493;
+  --bui-bg-solid-hover: rgb(26, 71, 125);
+  --bui-bg-solid-pressed: rgb(21, 58, 102);
+  --bui-bg-solid-disabled: rgba(0, 0, 0, 0.12);
+  --bui-bg-danger: #ef5350;
+  --bui-bg-warning: #ff9800;
+  --bui-bg-success: #4caf50;
+  --bui-bg-info: #03a9f4;
+  --bui-border-danger: #d32f2f;
+  --bui-border-warning: #ed6c02;
+  --bui-border-success: #2e7d32;
+  --bui-border-info: #0288d1;
+  --bui-border-2: #E6E6E6;
+  --bui-ring: #FFFBCC;
+}

@@ -1,16 +1,16 @@
 import {
-  Alert,
-  Box,
-  Button,
-  ButtonLink,
-  Card,
-  CardBody,
-  Container,
-  Flex,
-  TextField,
-} from '@backstage/ui';
+  Content,
+  InfoCard,
+  Link,
+  LinkButton,
+  WarningPanel,
+} from '@backstage/core-components';
+import Box from '@material-ui/core/Box';
+import Button from '@material-ui/core/Button';
+import CircularProgress from '@material-ui/core/CircularProgress';
+import Grid from '@material-ui/core/Grid';
+import TextField from '@material-ui/core/TextField';
 import { FormEvent, useState } from 'react';
-import { Link as RouterLink } from 'react-router-dom';
 
 import { useCreateGithubTeam } from '../../hooks/useCreateGithubTeam';
 import type { CreateTeamSubmittedResponse } from '../../types';
@@ -54,71 +54,90 @@ export const ManageGithubTeamPage = () => {
   };
 
   return (
-    <Container>
-      <Card>
-        <CardBody>
-          <form onSubmit={handleSubmit} noValidate>
-            <Flex direction="column" gap="4">
-              <Box>
-                Requests creation of a team in your GitHub organization. A
-                configured approver must approve the request in Backstage
-                before the team is created on GitHub.
-              </Box>
-              {error ? (
-                <Alert status="danger" title="Could not submit request" icon>
-                  <Box>{error}</Box>
-                </Alert>
-              ) : null}
-              {success ? (
-                <Alert
-                  status="success"
-                  title="Approval request submitted"
-                  icon
-                >
-                  <Flex direction="column" gap="2">
-                    <Box>
-                      Your request is <strong>{success.status}</strong>. An
-                      approver will be notified. You can track it under{' '}
-                      <RouterLink to={`/approvals/${success.id}`}>
-                        approval {success.id.slice(0, 8)}…
-                      </RouterLink>
-                      .
-                    </Box>
-                    <ButtonLink variant="secondary" href="/approvals/mine">
-                      View my requests
-                    </ButtonLink>
-                  </Flex>
-                </Alert>
-              ) : null}
+    <Content>
+      <Grid container spacing={3}>
+        {error ? (
+          <Grid item xs={12}>
+            <WarningPanel
+              severity="error"
+              title="Could not submit request"
+              message={error}
+            />
+          </Grid>
+        ) : null}
+
+        {success ? (
+          <Grid item xs={12}>
+            <WarningPanel
+              severity="info"
+              title="Approval request submitted"
+              message={
+                <>
+                  Your request is <strong>{success.status}</strong>. An
+                  approver will be notified. You can track it under{' '}
+                  <Link to={`/approvals/${success.id}`}>
+                    approval {success.id.slice(0, 8)}…
+                  </Link>
+                  .
+                </>
+              }
+            />
+            <Box mt={2}>
+              <LinkButton to="/approvals/mine" color="primary">
+                View my requests
+              </LinkButton>
+            </Box>
+          </Grid>
+        ) : null}
+
+        <Grid item xs={12} md={8} lg={6}>
+          <InfoCard
+            title="Create GitHub team"
+            subheader="Requests creation of a team in your GitHub organization. A configured approver must approve the request in Backstage before the team is created on GitHub."
+          >
+            <form onSubmit={handleSubmit} noValidate>
               <TextField
                 label="Team name"
                 name="teamName"
                 value={teamName}
-                onChange={setTeamName}
+                onChange={event => setTeamName(event.target.value)}
                 placeholder="e.g. platform-engineering"
-                isRequired
+                required
+                fullWidth
+                margin="normal"
+                variant="outlined"
               />
               <TextField
                 label="Description"
                 name="description"
                 value={description}
-                onChange={setDescription}
+                onChange={event => setDescription(event.target.value)}
                 placeholder="Optional; defaults to a standard message if omitted"
+                fullWidth
+                margin="normal"
+                variant="outlined"
+                multiline
+                minRows={2}
               />
-              <Box>
+              <Box mt={2}>
                 <Button
                   type="submit"
-                  variant="primary"
-                  isDisabled={submitting}
-                  loading={submitting}
+                  variant="contained"
+                  color="primary"
+                  disabled={submitting}
+                  startIcon={
+                    submitting ? (
+                      <CircularProgress size={20} color="inherit" />
+                    ) : undefined
+                  }
                 >
                   Request team creation
                 </Button>
               </Box>
-            </Flex>
-          </form>
-        </CardBody>
-      </Card>
-    </Container>
+            </form>
+          </InfoCard>
+        </Grid>
+      </Grid>
+    </Content>
   );
 };
