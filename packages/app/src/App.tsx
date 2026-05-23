@@ -1,37 +1,45 @@
 import { createApp } from '@backstage/frontend-defaults';
-import catalogPlugin from '@backstage/plugin-catalog/alpha';
+import { convertLegacyPlugin } from '@backstage/core-compat-api';
+import {
+  techDocsExpandableNavigationAddonModule,
+  techDocsLightBoxAddonModule,
+  techDocsReportIssueAddonModule,
+  techDocsTextSizeAddonModule,
+} from '@backstage/plugin-techdocs-module-addons-contrib/alpha';
+import { badgesPlugin } from '@backstage-community/plugin-badges';
 import manageGithubRepoPlugin from '@internal/backstage-plugin-manage-github-repo';
-import { navModule } from './modules/nav';
-import { githubAuthApiRef } from '@backstage/core-plugin-api';
-import { SignInPageBlueprint } from '@backstage/plugin-app-react';
-import { SignInPage } from '@backstage/core-components';
-import { createFrontendModule } from '@backstage/frontend-plugin-api';
 
-const signInPage = SignInPageBlueprint.make({
-  params: {
-    loader: async () => props =>
-      (
-        <SignInPage
-          {...props}
-          provider={{
-            id: 'github-auth-provider',
-            title: 'GitHub',
-            message: 'Sign in using GitHub',
-            apiRef: githubAuthApiRef,
-          }}
-        />
-      ),
-  },
+import { navModule } from './components/Root';
+import { appOverride } from './overrides/app';
+import { catalogNavItemOverride } from './overrides/catalog';
+import { graphiqlOverride } from './overrides/graphiql';
+import { homeWidgetsOverride } from './overrides/home';
+import { userSettingsOverride } from './overrides/userSettings';
+
+const convertedBadgesPlugin = convertLegacyPlugin(badgesPlugin, {
+  extensions: [],
 });
 
-export default createApp({
+const app = createApp({
   features: [
-    catalogPlugin,
-    manageGithubRepoPlugin,
+    // App-level extensions
+    appOverride,
+    convertedBadgesPlugin,
+    // TechDocs addon modules have no default export so won't be auto-discovered
+    techDocsExpandableNavigationAddonModule,
+    techDocsLightBoxAddonModule,
+    techDocsReportIssueAddonModule,
+    techDocsTextSizeAddonModule,
+    // Nav module
     navModule,
-    createFrontendModule({
-      pluginId: 'app',
-      extensions: [signInPage],
-    }),
+    catalogNavItemOverride,
+    graphiqlOverride,
+    // Custom page overrides
+    homeWidgetsOverride,
+    userSettingsOverride,
+    // Internal plugins
+    manageGithubRepoPlugin,
   ],
 });
+
+export default app.createRoot();

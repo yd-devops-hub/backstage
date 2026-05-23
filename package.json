@@ -50,7 +50,14 @@
   },
   "resolutions": {
     "@types/react": "^18",
-    "@types/react-dom": "^18"
+    "@types/react-dom": "^18",
+    "@protobufjs/inquire": "1.1.0",
+    "@backstage/cli-module-build@npm:^0.1.1": "patch:@backstage/cli-module-build@npm%3A0.1.2#~/.yarn/patches/@backstage-cli-module-build-npm-0.1.2-e2a664df76.patch"
+  },
+  "jest": {
+    "transformModules": [
+      "@asyncapi/react-component"
+    ]
   },
   "prettier": "@backstage/cli/config/prettier",
   "lint-staged": {

@@ -7,7 +7,7 @@ import {
   StructuredMetadataTable,
   WarningPanel,
 } from '@backstage/core-components';
-import { useApi, useRouteRef } from '@backstage/frontend-plugin-api';
+import { useApi, useRouteRef, identityApiRef } from '@backstage/frontend-plugin-api';
 import Button from '@material-ui/core/Button';
 import Grid from '@material-ui/core/Grid';
 import ArrowBackIcon from '@material-ui/icons/ArrowBack';
@@ -85,13 +85,26 @@ function ApprovalDetailContent({
   row,
   error,
   busy,
+  userRef,
+  onApprove,
+  onReject,
   onCancel,
 }: {
   row: ApprovalRequestDto;
   error: string | null;
   busy: boolean;
+  userRef: string | undefined;
+  onApprove: () => Promise<void>;
+  onReject: () => Promise<void>;
   onCancel: () => Promise<void>;
 }) {
+  const isRequester = userRef === row.requesterRef;
+  const isApprover = Boolean(
+    userRef && row.approverRefs.includes(userRef),
+  );
+  const canDecide = row.status === 'pending' && isApprover;
+  const canCancel = row.status === 'pending' && isRequester;
+
   return (
     <Grid container spacing={3}>
       <Grid item xs={12}>
@@ -128,19 +141,50 @@ function ApprovalDetailContent({
         </Grid>
       ) : null}
 
-      {row.status === 'pending' ? (
+      {canDecide || canCancel ? (
         <Grid item xs={12}>
           <InfoCard title="Actions">
-            <Button
-              variant="outlined"
-              color="secondary"
-              disabled={busy}
-              onClick={() => {
-                void onCancel();
-              }}
-            >
-              Cancel request
-            </Button>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {canDecide ? (
+                <>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    size="small"
+                    disabled={busy}
+                    onClick={() => {
+                      void onApprove();
+                    }}
+                  >
+                    Approve
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="secondary"
+                    size="small"
+                    disabled={busy}
+                    onClick={() => {
+                      void onReject();
+                    }}
+                  >
+                    Reject
+                  </Button>
+                </>
+              ) : null}
+              {canCancel ? (
+                <Button
+                  variant="outlined"
+                  color="secondary"
+                  size="small"
+                  disabled={busy}
+                  onClick={() => {
+                    void onCancel();
+                  }}
+                >
+                  Cancel request
+                </Button>
+              ) : null}
+            </div>
           </InfoCard>
         </Grid>
       ) : null}
@@ -151,9 +195,23 @@ function ApprovalDetailContent({
 export const ApprovalDetailPage = () => {
   const { requestId } = useParams();
   const api = useApi(approvalsApiRef);
+  const identityApi = useApi(identityApiRef);
   const [row, setRow] = useState<ApprovalRequestDto | undefined>();
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [userRef, setUserRef] = useState<string | undefined>();
+
+  useEffect(() => {
+    let cancelled = false;
+    identityApi.getBackstageIdentity().then(identity => {
+      if (!cancelled) {
+        setUserRef(identity.userEntityRef);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [identityApi]);
 
   useEffect(() => {
     if (!requestId) return;
@@ -172,6 +230,32 @@ export const ApprovalDetailPage = () => {
       cancelled = true;
     };
   }, [api, requestId]);
+
+  const handleApprove = async () => {
+    if (!row) return;
+    setBusy(true);
+    setError(null);
+    try {
+      setRow(await api.approve(row.id));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleReject = async () => {
+    if (!row) return;
+    setBusy(true);
+    setError(null);
+    try {
+      setRow(await api.reject(row.id, 'Rejected from approval detail'));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const handleCancel = async () => {
     if (!row) return;
@@ -235,6 +319,9 @@ export const ApprovalDetailPage = () => {
         row={row}
         error={error}
         busy={busy}
+        userRef={userRef}
+        onApprove={handleApprove}
+        onReject={handleReject}
         onCancel={handleCancel}
       />
     </Content>

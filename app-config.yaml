@@ -1,26 +1,59 @@
 app:
-  title: Scaffolded Backstage App
+  title: Backstage Demo
   baseUrl: http://localhost:3000
 
   # Enable all packages by default, this will discover packages from packages/app/package.json
   packages: all
 
   extensions:
-    # Disable the nav items that we're manually rendering in packages/app/src/modules/nav/Sidebar.tsx
+    # Disable nav items manually rendered in packages/app/src/components/Root/Sidebar.tsx
     - nav-item:search: false
     - nav-item:user-settings: false
     - nav-item:catalog: false
     - nav-item:scaffolder: false
-
-    # Configure the catalog index page to be the root page, this is normally mounted on /catalog
-    - page:catalog:
+    - nav-item:manage-github-team: false
+    - nav-item:approvals/inbox: false
+    - nav-item:approvals/mine: false
+    - catalog-filter:catalog/list:
         config:
-          path: /
-
-    # Single flat tab strip on entity pages (no Documentation / Development dropdown groups).
-    - page:catalog/entity:
+          initialFilter: all
+    - entity-card:catalog/about:
         config:
-          groups: []
+          type: info
+    - entity-card:catalog-graph/relations:
+        config:
+          type: content
+          filter:
+            $not: { kind: { $in: [Group, User] } }
+    - entity-card:org/ownership:
+        config:
+          type: content
+          filter: { kind: { $in: [Group, User] } }
+    - entity-card:catalog/depends-on-components:
+        config:
+          filter: { spec.dependsOn: { $exists: true } }
+    - entity-card:catalog/depends-on-resources:
+        config:
+          filter: { spec.dependsOn: { $exists: true } }
+    - entity-content:techdocs:
+        config:
+          title: Docs
+    - sub-page:scaffolder/templates:
+        config:
+          enableBackstageUi: true
+  support:
+    url: https://github.com/backstage/backstage/issues
+    items:
+      - title: Backstage Community
+        icon: chat
+        links:
+          - url: https://backstage.io/docs/overview/support
+            title: Support and community
+      - title: Backstage News
+        icon: docs
+        links:
+          - url: https://backstage.io/blog/
+            title: Backstage Blog
 
 organization:
   name: My Company
@@ -39,8 +72,18 @@ backend:
     # host: 127.0.0.1
   csp:
     connect-src: ["'self'", 'http:', 'https:']
-    # Content-Security-Policy directives follow the Helmet format: https://helmetjs.github.io/#reference
-    # Default Helmet Content-Security-Policy values can be removed by setting the key to false
+    img-src:
+      [
+        "'self'",
+        'data:',
+        'https://backstage.io',
+        'https://img.shields.io/',
+        'https://api.dicebear.com/',
+        'https://kroki.io/',
+        'https://www.bestpractices.dev/',
+        'https://api.securityscorecards.dev',
+      ]
+    frame-src: ['https://www.youtube.com']
   cors:
     origin: http://localhost:3000
     methods: [GET, HEAD, PATCH, POST, PUT, DELETE]
@@ -78,6 +121,7 @@ proxy:
   #     changeOrigin: true
 
 auth:
+  environment: development
   # see https://backstage.io/docs/auth/ to learn about auth providers
   providers:
     # See https://backstage.io/docs/auth/guest/provider
@@ -86,14 +130,8 @@ auth:
   # to learn more about client id metadata documents
   experimentalClientIdMetadataDocuments:
     enabled: false
-    # Optional: restrict which `client_id` URLs are allowed (defaults to ['*'])
-    # allowedClientIdPatterns:
-    #   - 'https://example.com/*'
-    #   - 'https://*.trusted-domain.com/*'
-    # Optional: restrict which redirect URIs are allowed (defaults to ['*'])
-    # allowedRedirectUriPatterns:
-    #   - 'http://localhost:*'
-    #   - 'https://*.example.com/*'
+  experimentalDynamicClientRegistration:
+    enabled: false
 
 scaffolder:
   # see https://backstage.io/docs/features/software-templates/configuration for software template options
@@ -103,7 +141,7 @@ catalog:
     entityFilename: catalog-info.yaml
     pullRequestBranchName: backstage-integration
   rules:
-    - allow: [Component, System, API, Resource, Location]
+    - allow: [Component, System, Resource, Location]
   locations:
     # Local example data, file locations are relative to the backend process, typically `packages/backend`
     - type: file
@@ -137,6 +175,58 @@ catalog:
     #   rules:
     #     - allow: [User, Group]
 
+costInsights:
+  engineerCost: 200000
+  products:
+    computeEngine:
+      name: Compute Engine
+      icon: compute
+    cloudStorage:
+      name: Cloud Storage
+      icon: storage
+    bigQuery:
+      name: BigQuery
+      icon: search
+  metrics:
+    DAU:
+      name: Daily Active Users
+      default: true
+    MSC:
+      name: Monthly Subscribers
+
+techdocs:
+  sanitizer:
+    allowedIframeHosts:
+      - www.youtube.com
+  builder: 'local'
+  generator:
+    runIn: 'local'
+  publisher:
+    type: 'local'
+
+kubernetes:
+  serviceLocatorMethod:
+    type: 'multiTenant'
+  clusterLocatorMethods:
+    - type: 'config'
+      clusters: []
+
+explore:
+  tools:
+    - title: 'Cost Insights'
+      description: 'Insights into cloud costs for your organization.'
+      url: '/cost-insights'
+      image: '/google-cloud.png'
+      tags: ['cloud', 'finops']
+    - title: 'GraphiQL'
+      description: 'Integrates GraphiQL as a tool to browse GraphiQL endpoints inside Backstage.'
+      url: '/graphiql'
+      image: '/graphiql.png'
+      tags: ['graphql', 'dev']
+
+notificationsTester:
+  enabled: false
+
 # see https://backstage.io/docs/permissions/getting-started for more on the permission framework
 permission:
   # setting this to `false` will disable permissions
@@ -156,5 +246,5 @@ approvals:
 
 # see https://backstage.io/docs/ai/mcp-actions for more details
 mcpActions:
-  name: 'My Company Backstage' # defaults to "backstage"
-  description: 'Tools for managing your software catalog, creating new services from templates, and exploring your developer portal' # optional
+  name: 'My Company Backstage'
+  description: 'Tools for managing your software catalog, creating new services from templates, and exploring your developer portal'

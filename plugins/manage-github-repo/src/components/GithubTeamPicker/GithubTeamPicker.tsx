@@ -1,11 +1,9 @@
-import { Select } from '@backstage/core-components';
 import { useApi } from '@backstage/core-plugin-api';
 import type { FieldExtensionComponentProps } from '@backstage/plugin-scaffolder-react';
-import FormControl from '@material-ui/core/FormControl';
-import FormHelperText from '@material-ui/core/FormHelperText';
 import { useEffect, useMemo, useState } from 'react';
 
 import { manageGithubRepoApiRef } from '../../api';
+import { ScaffolderAsyncSelect } from '../scaffolder/ScaffolderAsyncSelect';
 
 type GithubTeamPickerUiOptions = {
   orgField?: string;
@@ -18,15 +16,7 @@ type FormContextWithData = {
 export const GithubTeamPicker = (
   props: FieldExtensionComponentProps<string, GithubTeamPickerUiOptions>,
 ) => {
-  const {
-    onChange,
-    rawErrors,
-    formData,
-    schema,
-    required,
-    uiSchema,
-    formContext,
-  } = props;
+  const { onChange, formData, uiSchema, formContext } = props;
 
   const orgField = uiSchema?.['ui:options']?.orgField ?? 'repoOwner';
   const org = (
@@ -83,7 +73,7 @@ export const GithubTeamPicker = (
     };
   }, [api, formData, onChange, org]);
 
-  const items = useMemo(
+  const options = useMemo(
     () =>
       teams.map(team => ({
         label: team.name,
@@ -92,31 +82,20 @@ export const GithubTeamPicker = (
     [teams],
   );
 
-  const helperText =
-    loadError ??
-    schema.description ??
-    'Select the GitHub team that owns this repository.';
+  const emptyLabel = loading
+    ? 'Loading…'
+    : loadError ?? (org ? 'No teams found' : 'Select an owner first');
 
   return (
-    <FormControl
-      margin="normal"
-      required={required}
-      error={Boolean(rawErrors?.length) && !formData}
-      fullWidth
-    >
-      <Select
-        native
-        label={schema.title ?? 'Owner Team'}
-        disabled={!org || loading || items.length === 0}
-        selected={formData ?? ''}
-        onChange={value => onChange(String(Array.isArray(value) ? value[0] : value))}
-        items={
-          items.length > 0
-            ? items
-            : [{ label: org ? 'No teams found' : 'Select an owner first', value: '' }]
-        }
-      />
-      <FormHelperText>{helperText}</FormHelperText>
-    </FormControl>
+    <ScaffolderAsyncSelect
+      fieldProps={props}
+      options={options}
+      defaultTitle="Owner Team"
+      defaultDescription={
+        loadError ?? 'Select the GitHub team that owns this repository.'
+      }
+      emptyLabel={emptyLabel}
+      selectDisabled={!org || loading || options.length === 0}
+    />
   );
 };
