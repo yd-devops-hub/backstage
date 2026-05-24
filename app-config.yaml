@@ -6,6 +6,8 @@ app:
   packages: all
 
   extensions:
+    # Use the Aperture theme as the default light theme instead of the built-in one.
+    - theme:app/light: false
     # Disable nav items manually rendered in packages/app/src/components/Root/Sidebar.tsx
     - nav-item:search: false
     - nav-item:user-settings: false
@@ -240,11 +242,10 @@ approvals:
     github-team-create:
       approvers:
         - group:default/guests
-    github-repo-settings-update:
+    github-repo-settings-sensitive-update:
       approvers:
         - group:default/guests
 
-# see https://backstage.io/docs/ai/mcp-actions for more details
 mcpActions:
   name: 'My Company Backstage'
   description: 'Tools for managing your software catalog, creating new services from templates, and exploring your developer portal'

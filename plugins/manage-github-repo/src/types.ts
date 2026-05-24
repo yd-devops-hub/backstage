@@ -1,4 +1,21 @@
 import type { ApprovalRequestDto } from '@internal/backstage-plugin-approvals';
+import type {
+  GithubRepoSettings,
+  RepoSettingUiDefinition,
+  RepoSummary,
+  RepoSettingsSnapshot,
+} from '@internal/backstage-plugin-manage-github-repo-common';
+
+/** flattened GitHub identifiers for UX chrome */
+export type GithubRepoIdentifiers = RepoSummary;
+
+export type {
+  RepoSettingsSnapshot,
+  GithubRepoSettings,
+  RepoSettingUiDefinition,
+};
+
+export type GithubRepoSettingsPayload = GithubRepoSettings;
 
 export type GithubOrgOption = {
   login: string;
@@ -7,23 +24,6 @@ export type GithubOrgOption = {
 export type GithubTeamOption = {
   slug: string;
   name: string;
-};
-
-/** Mirrors `RepoSummary` from the manage-github-repo backend. */
-export type GithubRepoSummary = {
-  owner: string;
-  name: string;
-  fullName: string;
-  defaultBranch: string;
-  deleteBranchOnMerge: boolean;
-  htmlUrl: string;
-  private: boolean;
-};
-
-export type GithubRepoSettingsPayload = {
-  defaultBranch?: string;
-  deleteBranchOnMerge?: boolean;
-  branchRulesetPresetIds?: string[];
 };
 
 export type BranchRulesetPresetOption = {
@@ -37,15 +37,10 @@ export type CreateGithubRepoPayload = {
   description?: string;
   private?: boolean;
   autoInit?: boolean;
-  /** When true, do not apply the standard default-branch ruleset on create. */
   skipDefaultBranchRuleset?: boolean;
   settings?: GithubRepoSettingsPayload;
 };
 
-/**
- * Returned immediately after submitting repo settings for approval
- * (GitHub is not updated until an approver approves).
- */
 export type RepoSettingsUpdateSubmittedResponse = Pick<
   ApprovalRequestDto,
   'id' | 'status' | 'actionType' | 'createdAt'
@@ -54,4 +49,3 @@ export type RepoSettingsUpdateSubmittedResponse = Pick<
 export type RepoSettingsUpdateSubmitResult =
   | { ok: true; data: RepoSettingsUpdateSubmittedResponse }
   | { ok: false; error: string };
-

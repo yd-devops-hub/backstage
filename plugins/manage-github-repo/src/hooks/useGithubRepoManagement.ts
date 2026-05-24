@@ -6,7 +6,7 @@ import type {
   BranchRulesetPresetOption,
   CreateGithubRepoPayload,
   GithubRepoSettingsPayload,
-  GithubRepoSummary,
+  RepoSettingsSnapshot,
   RepoSettingsUpdateSubmitResult,
 } from '../types';
 
@@ -31,9 +31,9 @@ export function useGithubRepoManagement() {
           setPresetsError(null);
         }
       })
-      .catch((e: Error) => {
+      .catch((event: Error) => {
         if (!cancelled) {
-          setPresetsError(e.message);
+          setPresetsError(event.message);
         }
       })
       .finally(() => {
@@ -47,16 +47,14 @@ export function useGithubRepoManagement() {
   }, [api]);
 
   const loadRepo = useCallback(
-    async (owner: string, repo: string) => {
-      return api.getRepo(owner.trim(), repo.trim());
+    async (ownerSlug: string, repoSlug: string) => {
+      return api.getRepo(ownerSlug.trim(), repoSlug.trim());
     },
     [api],
   );
 
   const createRepo = useCallback(
-    async (payload: CreateGithubRepoPayload) => {
-      return api.createRepo(payload);
-    },
+    async (payload: CreateGithubRepoPayload) => api.createRepo(payload),
     [api],
   );
 
@@ -65,9 +63,9 @@ export function useGithubRepoManagement() {
       owner: string,
       repo: string,
       settings: GithubRepoSettingsPayload,
-    ): Promise<RepoSettingsUpdateSubmitResult> => {
-      return requestUpdate(owner.trim(), repo.trim(), settings);
-    },
+      changedKeys: string[],
+    ): Promise<RepoSettingsUpdateSubmitResult> =>
+      requestUpdate(owner.trim(), repo.trim(), settings, changedKeys),
     [requestUpdate],
   );
 
@@ -82,4 +80,4 @@ export function useGithubRepoManagement() {
   };
 }
 
-export type { GithubRepoSummary };
+export type { RepoSettingsSnapshot };

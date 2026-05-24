@@ -1,0 +1,38 @@
+{
+  "name": "@internal/backstage-plugin-manage-github-repo-common",
+  "version": "0.1.0",
+  "license": "UNLICENSED",
+  "private": true,
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "publishConfig": {
+    "access": "public",
+    "main": "dist/index.esm.js",
+    "types": "dist/index.d.ts"
+  },
+  "backstage": {
+    "role": "common-library",
+    "pluginId": "manage-github-repo"
+  },
+  "sideEffects": false,
+  "scripts": {
+    "build": "backstage-cli package build",
+    "lint": "backstage-cli package lint",
+    "test": "backstage-cli package test",
+    "clean": "backstage-cli package clean",
+    "prepack": "backstage-cli package prepack",
+    "postpack": "backstage-cli package postpack"
+  },
+  "dependencies": {
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@backstage/cli": "^0.36.1"
+  },
+  "files": [
+    "dist"
+  ],
+  "jest": {
+    "testEnvironment": "jest-environment-node"
+  }
+}

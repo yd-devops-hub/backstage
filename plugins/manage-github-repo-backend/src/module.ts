@@ -19,11 +19,40 @@ export const manageGithubRepoApprovalsModule = createBackendModule({
       },
       async init({ actions, logger, config }) {
         const githubRepos = new GithubRepoService({ logger, config });
+
         actions.registerAction({
           type: 'github-repo-settings-update',
           schema: githubRepoSettingsUpdatePayloadSchema,
           execute: async (payload, ctx) => {
-            const body = githubRepoSettingsUpdatePayloadSchema.parse(payload);
+            const body =
+              githubRepoSettingsUpdatePayloadSchema.parse(payload);
+
+            logger.info(
+              `[github-repo-settings-update] repo=${body.owner}/${body.repo} payloadKeys=${JSON.stringify(
+                Object.keys(body.settings ?? {}),
+              )}`,
+            );
+            return githubRepos.updateRepository(
+              body.owner,
+              body.repo,
+              body.settings,
+              ctx.logger,
+            );
+          },
+        });
+
+        actions.registerAction({
+          type: 'github-repo-settings-sensitive-update',
+          schema: githubRepoSettingsUpdatePayloadSchema,
+          execute: async (payload, ctx) => {
+            const body =
+              githubRepoSettingsUpdatePayloadSchema.parse(payload);
+
+            logger.info(
+              `[github-repo-settings-sensitive-update][audit] repo=${body.owner}/${body.repo} payloadKeys=${JSON.stringify(
+                Object.keys(body.settings ?? {}),
+              )}`,
+            );
             return githubRepos.updateRepository(
               body.owner,
               body.repo,

@@ -1,13 +1,13 @@
-import {
-  BRANCH_RULESET_PRESET_IDS,
-  buildBranchRulesetPreset,
-} from './branchRulesetPresets';
+import { BRANCH_RULESET_PRESET_IDS } from '@internal/backstage-plugin-manage-github-repo-common';
+
+import { buildBranchRulesetPreset } from './branchRulesetPresets';
 
 describe('branchRulesetPresets', () => {
   it('covers known preset ids', () => {
     expect(BRANCH_RULESET_PRESET_IDS.has('require-pull-request')).toBe(true);
     expect(BRANCH_RULESET_PRESET_IDS.has('require-linear-history')).toBe(true);
     expect(BRANCH_RULESET_PRESET_IDS.has('block-force-push')).toBe(true);
+    expect(BRANCH_RULESET_PRESET_IDS.has('strict-default-branch-bundle')).toBe(true);
   });
 
   it('builds rulesets targeting the branch ref', () => {

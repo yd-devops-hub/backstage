@@ -1,5 +1,4 @@
 import { Octokit } from '@octokit/rest';
-import type { RestEndpointMethodTypes } from '@octokit/rest';
 import {
   readGithubIntegrationConfigs,
   SingleInstanceGithubCredentialsProvider,
@@ -9,27 +8,24 @@ import {
 import type { LoggerService } from '@backstage/backend-plugin-api';
 import type { Config } from '@backstage/config';
 import { InputError } from '@backstage/errors';
+import {
+  BRANCH_RULESET_PRESET_META,
+  type RepoSettingsSnapshot,
+  type RepoSummary,
+} from '@internal/backstage-plugin-manage-github-repo-common';
 
 import type { CreateRepoBody, GithubRepoSettings } from '../schemas/repoSchemas';
 import {
   DEFAULT_REPO_CREATION_RULESET,
-  type RepoRulesetUpsertPayload,
 } from '../rulesets/defaultRepoCreationRuleset';
+import { applyGithubRepoSettings } from '../settings/applyRepoSettings';
+import { buildRepoSettingsSnapshot } from '../settings/readRepoSnapshot';
 import {
-  BRANCH_RULESET_PRESET_IDS,
-  BRANCH_RULESET_PRESET_META,
-  buildBranchRulesetPreset,
-} from '../rulesets/branchRulesetPresets';
+  loadRulesetNameMap,
+  upsertRepoRulesetPayload,
+} from '../settings/rulesetSync';
 
-export type RepoSummary = {
-  owner: string;
-  name: string;
-  fullName: string;
-  defaultBranch: string;
-  deleteBranchOnMerge: boolean;
-  htmlUrl: string;
-  private: boolean;
-};
+export type { RepoSummary, RepoSettingsSnapshot };
 
 export type BranchRulesetPresetDescription = {
   id: string;
@@ -139,6 +135,24 @@ function resolveDefaultOrg(config: Config): string {
   );
 }
 
+function settingsPayloadContainsWork(settings?: GithubRepoSettings): boolean {
+  if (!settings) {
+    return false;
+  }
+  return Object.entries(settings).some(([, value]) => {
+    if (value === undefined || value === null) {
+      return false;
+    }
+    if (Array.isArray(value)) {
+      return value.length > 0;
+    }
+    if (typeof value === 'object') {
+      return Object.keys(value as object).length > 0;
+    }
+    return true;
+  });
+}
+
 export class GithubRepoService {
   private readonly githubIntegration: GithubIntegration | undefined;
   private readonly defaultOrg: string;
@@ -170,7 +184,7 @@ export class GithubRepoService {
         const octokit = await this.getOctokit(org);
         await octokit.rest.orgs.get({ org });
         items.push({ login: org });
-      } catch (error) {
+      } catch (_error) {
         logger.warn(
           `Configured GitHub org "${org}" is unavailable for Backstage repo creation`,
         );
@@ -210,7 +224,7 @@ export class GithubRepoService {
     return { items };
   }
 
-  private async getOctokit(org: string): Promise<Octokit> {
+  private async getOctokit(orgOrOwner: string): Promise<Octokit> {
     if (!this.githubIntegration) {
       throw new InputError(
         'GitHub integration is not configured. Add integrations.github with a GitHub App or token.',
@@ -218,7 +232,7 @@ export class GithubRepoService {
     }
 
     const { integrationConfig, credentials } = this.githubIntegration;
-    const credentialsUrl = `https://${integrationConfig.host}/${org}`;
+    const credentialsUrl = `https://${integrationConfig.host}/${orgOrOwner}`;
 
     const { token } = await credentials.getCredentials({
       url: credentialsUrl,
@@ -238,30 +252,12 @@ export class GithubRepoService {
     });
   }
 
-  private toSummary(repo: {
-    name: string;
-    full_name?: string;
-    owner: { login: string };
-    default_branch?: string | null;
-    delete_branch_on_merge?: boolean | null;
-    html_url?: string;
-    private?: boolean;
-  }): RepoSummary {
-    return {
-      owner: repo.owner.login,
-      name: repo.name,
-      fullName: repo.full_name ?? `${repo.owner.login}/${repo.name}`,
-      defaultBranch: repo.default_branch ?? '',
-      deleteBranchOnMerge: Boolean(repo.delete_branch_on_merge),
-      htmlUrl: repo.html_url ?? '',
-      private: Boolean(repo.private),
-    };
-  }
-
-  async getRepository(owner: string, repo: string): Promise<RepoSummary> {
+  async getRepository(
+    owner: string,
+    repo: string,
+  ): Promise<RepoSettingsSnapshot> {
     const octokit = await this.getOctokit(owner);
-    const res = await octokit.rest.repos.get({ owner, repo });
-    return this.toSummary(res.data);
+    return buildRepoSettingsSnapshot(octokit, owner, repo);
   }
 
   async createRepository(
@@ -281,18 +277,18 @@ export class GithubRepoService {
       auto_init: body.autoInit ?? true,
     });
 
-    const owner = created.data.owner.login;
-    const repoName = created.data.name;
+    const ownerSlug = created.data.owner.login;
+    const repoSlug = created.data.name;
 
     if (!body.skipDefaultBranchRuleset) {
       logger.info(
-        `Applying default branch ruleset "${DEFAULT_REPO_CREATION_RULESET.name}" on ${owner}/${repoName}`,
+        `Applying default branch ruleset "${DEFAULT_REPO_CREATION_RULESET.name}" on ${ownerSlug}/${repoSlug}`,
       );
-      const rulesetMap = await this.loadRulesetNameMap(octokit, owner, repoName);
-      await this.upsertRepoRulesetPayload(
+      const rulesetMap = await loadRulesetNameMap(octokit, ownerSlug, repoSlug);
+      await upsertRepoRulesetPayload(
         octokit,
-        owner,
-        repoName,
+        ownerSlug,
+        repoSlug,
         DEFAULT_REPO_CREATION_RULESET,
         rulesetMap,
         logger,
@@ -300,22 +296,32 @@ export class GithubRepoService {
     }
 
     const settings = body.settings;
-    const hasSettings =
-      settings &&
-      (settings.defaultBranch !== undefined ||
-        settings.deleteBranchOnMerge !== undefined ||
-        (settings.branchRulesetPresetIds?.length ?? 0) > 0);
-
-    if (hasSettings && settings) {
-      await this.applyRepoSettings(owner, repoName, settings, logger);
-      const refreshed = await octokit.rest.repos.get({
-        owner,
-        repo: repoName,
-      });
-      return this.toSummary(refreshed.data);
+    if (settingsPayloadContainsWork(settings) && settings) {
+      logger.info(`Applying supplemental settings during create`);
+      await applyGithubRepoSettings(
+        octokit,
+        ownerSlug,
+        repoSlug,
+        settings,
+        logger,
+      );
+      const refreshed = await buildRepoSettingsSnapshot(
+        octokit,
+        ownerSlug,
+        repoSlug,
+      );
+      return refreshed.summary;
     }
 
-    return this.toSummary(created.data);
+    return {
+      owner: ownerSlug,
+      name: repoSlug,
+      fullName: created.data.full_name ?? `${ownerSlug}/${repoSlug}`,
+      defaultBranch: created.data.default_branch ?? '',
+      deleteBranchOnMerge: Boolean(created.data.delete_branch_on_merge),
+      htmlUrl: created.data.html_url ?? '',
+      private: Boolean(created.data.private),
+    };
   }
 
   async updateRepository(
@@ -325,24 +331,21 @@ export class GithubRepoService {
     logger: LoggerService,
   ): Promise<RepoSummary> {
     logger.info(`Updating GitHub repository ${owner}/${repo}`);
-    await this.applyRepoSettings(owner, repo, settings, logger);
     const octokit = await this.getOctokit(owner);
-    const refreshed = await octokit.rest.repos.get({ owner, repo });
-    return this.toSummary(refreshed.data);
+    await applyGithubRepoSettings(octokit, owner, repo, settings, logger);
+    const refreshed = await buildRepoSettingsSnapshot(octokit, owner, repo);
+    logger.info(`Repo ${owner}/${repo} refresh complete (${refreshed.fullName})`);
+    return refreshed.summary;
   }
 
-  /**
-   * Applies the default branch ruleset (see defaultRepoCreationRuleset.ts) to an existing repository.
-   * Used by Software Templates after `publish:github`.
-   */
   async applyDefaultRepoCreationRuleset(
     owner: string,
     repo: string,
     logger: LoggerService,
   ): Promise<void> {
     const octokit = await this.getOctokit(owner);
-    const map = await this.loadRulesetNameMap(octokit, owner, repo);
-    await this.upsertRepoRulesetPayload(
+    const map = await loadRulesetNameMap(octokit, owner, repo);
+    await upsertRepoRulesetPayload(
       octokit,
       owner,
       repo,
@@ -352,10 +355,7 @@ export class GithubRepoService {
     );
   }
 
-  /**
-   * Applies settings additively: omitted fields are left unchanged on GitHub.
-   * Branch rulesets are created or updated when `branchRulesetPresetIds` is non-empty.
-   */
+  /** @deprecated Prefer `applyGithubRepoSettings` via orchestrator/service call graph. */
   async applyRepoSettings(
     owner: string,
     repo: string,
@@ -363,111 +363,6 @@ export class GithubRepoService {
     logger: LoggerService,
   ): Promise<void> {
     const octokit = await this.getOctokit(owner);
-
-    if (
-      settings.defaultBranch !== undefined ||
-      settings.deleteBranchOnMerge !== undefined
-    ) {
-      await octokit.rest.repos.update({
-        owner,
-        repo,
-        ...(settings.defaultBranch !== undefined
-          ? { default_branch: settings.defaultBranch }
-          : {}),
-        ...(settings.deleteBranchOnMerge !== undefined
-          ? { delete_branch_on_merge: settings.deleteBranchOnMerge }
-          : {}),
-      });
-    }
-
-    const repoInfo = await octokit.rest.repos.get({ owner, repo });
-    const branchForRulesets =
-      settings.defaultBranch ?? repoInfo.data.default_branch ?? 'main';
-
-    if (settings.branchRulesetPresetIds?.length) {
-      await this.syncBranchRulesetPresets(
-        octokit,
-        owner,
-        repo,
-        branchForRulesets,
-        settings.branchRulesetPresetIds,
-        logger,
-      );
-    }
-  }
-
-  private async loadRulesetNameMap(
-    octokit: Octokit,
-    owner: string,
-    repo: string,
-  ): Promise<Map<string, { id: number }>> {
-    const { data: rulesets } = await octokit.rest.repos.getRepoRulesets({
-      owner,
-      repo,
-    });
-    const byName = new Map<string, { id: number }>();
-    for (const r of rulesets) {
-      if (typeof r.name === 'string' && r.id !== undefined) {
-        byName.set(r.name, { id: r.id });
-      }
-    }
-    return byName;
-  }
-
-  private async upsertRepoRulesetPayload(
-    octokit: Octokit,
-    owner: string,
-    repo: string,
-    payload: RepoRulesetUpsertPayload,
-    byName: Map<string, { id: number }>,
-    logger: LoggerService,
-  ): Promise<void> {
-    const existing = byName.get(payload.name);
-    if (existing !== undefined) {
-      logger.info(`Updating ruleset "${payload.name}" on ${owner}/${repo}`);
-      await octokit.rest.repos.updateRepoRuleset({
-        owner,
-        repo,
-        ruleset_id: existing.id,
-        ...payload,
-      } as RestEndpointMethodTypes['repos']['updateRepoRuleset']['parameters']);
-    } else {
-      logger.info(`Creating ruleset "${payload.name}" on ${owner}/${repo}`);
-      const created = await octokit.rest.repos.createRepoRuleset({
-        owner,
-        repo,
-        ...payload,
-      } as RestEndpointMethodTypes['repos']['createRepoRuleset']['parameters']);
-      if (created.data.name && created.data.id !== undefined) {
-        byName.set(created.data.name, { id: created.data.id });
-      }
-    }
-  }
-
-  private async syncBranchRulesetPresets(
-    octokit: Octokit,
-    owner: string,
-    repo: string,
-    branchName: string,
-    presetIds: string[],
-    logger: LoggerService,
-  ): Promise<void> {
-    const byName = await this.loadRulesetNameMap(octokit, owner, repo);
-
-    for (const presetId of presetIds) {
-      if (!BRANCH_RULESET_PRESET_IDS.has(presetId)) {
-        throw new InputError(`Unknown branch ruleset preset: ${presetId}`);
-      }
-
-      const rulesetPayload = buildBranchRulesetPreset(presetId, branchName);
-      await this.upsertRepoRulesetPayload(
-        octokit,
-        owner,
-        repo,
-        rulesetPayload,
-        byName,
-        logger,
-      );
-    }
+    await applyGithubRepoSettings(octokit, owner, repo, settings, logger);
   }
 }

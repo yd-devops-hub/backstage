@@ -8,20 +8,21 @@ import type {
   BranchRulesetPresetOption,
   CreateGithubRepoPayload,
   GithubOrgOption,
-  GithubRepoSummary,
+  RepoSettingUiDefinition,
+  RepoSettingsSnapshot,
+  RepoSummary,
   GithubTeamOption,
 } from './types';
 
-/** @public */
 export type GithubRepoManagementApi = {
   listBranchRulesetPresets(): Promise<{ items: BranchRulesetPresetOption[] }>;
+  listRepoSettingDefinitions(): Promise<{ items: RepoSettingUiDefinition[] }>;
   listGithubOrgs(): Promise<{ items: GithubOrgOption[] }>;
   listGithubTeams(org: string): Promise<{ items: GithubTeamOption[] }>;
-  getRepo(owner: string, repo: string): Promise<GithubRepoSummary>;
-  createRepo(payload: CreateGithubRepoPayload): Promise<GithubRepoSummary>;
+  getRepo(owner: string, repo: string): Promise<RepoSettingsSnapshot>;
+  createRepo(payload: CreateGithubRepoPayload): Promise<RepoSummary>;
 };
 
-/** @public */
 export const manageGithubRepoApiRef = createApiRef<GithubRepoManagementApi>({
   id: 'plugin.manage-github-repo.service',
 });
@@ -40,6 +41,7 @@ class GithubRepoManagementClient implements GithubRepoManagementApi {
     } catch {
       body = undefined;
     }
+
     if (!response.ok) {
       const message =
         typeof body === 'object' &&
@@ -54,10 +56,11 @@ class GithubRepoManagementClient implements GithubRepoManagementApi {
   }
 
   async listGithubOrgs(): Promise<{ items: GithubOrgOption[] }> {
-    const response = await this.options.fetch(
-      'plugin://manage-github-repo/meta/github-orgs',
+    const parsed = await this.parseResponse(
+      await this.options.fetch(
+        'plugin://manage-github-repo/meta/github-orgs',
+      ),
     );
-    const parsed = await this.parseResponse(response);
     if (!parsed.ok) {
       throw new Error(parsed.error);
     }
@@ -65,60 +68,77 @@ class GithubRepoManagementClient implements GithubRepoManagementApi {
   }
 
   async listGithubTeams(org: string): Promise<{ items: GithubTeamOption[] }> {
-    const response = await this.options.fetch(
-      `plugin://manage-github-repo/meta/github-teams/${encodeURIComponent(org)}`,
+    const parsed = await this.parseResponse(
+      await this.options.fetch(
+        `plugin://manage-github-repo/meta/github-teams/${encodeURIComponent(org)}`,
+      ),
     );
-    const parsed = await this.parseResponse(response);
     if (!parsed.ok) {
       throw new Error(parsed.error);
     }
     return parsed.data as { items: GithubTeamOption[] };
   }
 
+  async listRepoSettingDefinitions(): Promise<{
+    items: RepoSettingUiDefinition[];
+  }> {
+    const parsed = await this.parseResponse(
+      await this.options.fetch(
+        'plugin://manage-github-repo/meta/repo-setting-definitions',
+      ),
+    );
+    if (!parsed.ok) {
+      throw new Error(parsed.error);
+    }
+    return parsed.data as { items: RepoSettingUiDefinition[] };
+  }
+
   async listBranchRulesetPresets(): Promise<{
     items: BranchRulesetPresetOption[];
   }> {
-    const response = await this.options.fetch(
-      'plugin://manage-github-repo/meta/branch-ruleset-presets',
+    const parsed = await this.parseResponse(
+      await this.options.fetch(
+        'plugin://manage-github-repo/meta/branch-ruleset-presets',
+      ),
     );
-    const parsed = await this.parseResponse(response);
     if (!parsed.ok) {
       throw new Error(parsed.error);
     }
     return parsed.data as { items: BranchRulesetPresetOption[] };
   }
 
-  async getRepo(owner: string, repo: string): Promise<GithubRepoSummary> {
-    const response = await this.options.fetch(
-      `plugin://manage-github-repo/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`,
+  async getRepo(
+    owner: string,
+    repo: string,
+  ): Promise<RepoSettingsSnapshot> {
+    const parsed = await this.parseResponse(
+      await this.options.fetch(
+        `plugin://manage-github-repo/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`,
+      ),
     );
-    const parsed = await this.parseResponse(response);
     if (!parsed.ok) {
       throw new Error(parsed.error);
     }
-    return parsed.data as GithubRepoSummary;
+    return parsed.data as RepoSettingsSnapshot;
   }
 
   async createRepo(
     payload: CreateGithubRepoPayload,
-  ): Promise<GithubRepoSummary> {
-    const response = await this.options.fetch(
-      'plugin://manage-github-repo/repos',
-      {
+  ): Promise<RepoSummary> {
+    const parsed = await this.parseResponse(
+      await this.options.fetch('plugin://manage-github-repo/repos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
-      },
+      }),
     );
-    const parsed = await this.parseResponse(response);
     if (!parsed.ok) {
       throw new Error(parsed.error);
     }
-    return parsed.data as GithubRepoSummary;
+    return parsed.data as RepoSummary;
   }
 }
 
-/** @public */
 export const manageGithubRepoApiFactory = createApiFactory({
   api: manageGithubRepoApiRef,
   deps: { fetchApi: fetchApiRef },

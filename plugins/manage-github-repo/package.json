@@ -33,6 +33,7 @@
     "@backstage/plugin-scaffolder-react": "^2.0.0",
     "@backstage/ui": "^0.15.0",
     "@internal/backstage-plugin-approvals": "workspace:^",
+    "@internal/backstage-plugin-manage-github-repo-common": "workspace:^",
     "@material-ui/core": "^4.12.2",
     "zod": "^3.22.4"
   },

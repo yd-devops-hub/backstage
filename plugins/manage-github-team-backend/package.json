@@ -32,7 +32,7 @@
     "@backstage/plugin-catalog-node": "^2.2.0",
     "@backstage/types": "^1.2.2",
     "@internal/backstage-plugin-approvals-backend": "workspace:^",
-    "@octokit/rest": "^22.0.1",
+    "@octokit/rest": "^19.0.3",
     "express": "^4.14.0",
     "express-promise-router": "^4.1.0",
     "zod": "^3.25.76 || ^4.0.0"
