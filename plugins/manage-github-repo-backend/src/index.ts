@@ -12,8 +12,8 @@ export type { GithubRepoSettings } from './schemas/repoSchemas';
 export {
   BRANCH_RULESET_PRESET_META,
   BRANCH_RULESET_PRESET_IDS,
-  buildBranchRulesetPreset,
-} from './rulesets/branchRulesetPresets';
+} from '@internal/backstage-plugin-manage-github-repo-common';
+export { buildBranchRulesetPreset } from './rulesets/branchRulesetPresets';
 export {
   DEFAULT_REPO_CREATION_RULESET,
   DEFAULT_REPO_CREATION_RULESET_NAME,

@@ -31,10 +31,12 @@
     "@backstage/plugin-catalog-node": "^2.2.0",
     "@backstage/plugin-scaffolder-node": "^0.13.2",
     "@internal/backstage-plugin-approvals-backend": "workspace:^",
+    "@internal/backstage-plugin-manage-github-repo-common": "workspace:^",
     "@octokit/request-error": "^7.0.0",
     "@octokit/rest": "^22.0.1",
     "express": "^4.14.0",
     "express-promise-router": "^4.1.0",
+    "libsodium-wrappers": "^0.7.15",
     "zod": "^3.25.76 || ^4.0.0"
   },
   "devDependencies": {

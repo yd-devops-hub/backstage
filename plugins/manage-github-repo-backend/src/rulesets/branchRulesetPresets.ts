@@ -1,24 +1,22 @@
-import type { RepoRulesetUpsertPayload } from './defaultRepoCreationRuleset';
+import {
+  DEFAULT_REPO_CREATION_RULESET,
+  type RepoRulesetUpsertPayload,
+} from './defaultRepoCreationRuleset';
 
-export type BranchRulesetPresetMeta = {
-  id: string;
-  description: string;
-};
-
-/** Alias for preset builders (same shape as default creation ruleset payloads). */
 export type RepoRulesetPayload = RepoRulesetUpsertPayload;
 
 const rulesetNamePrefix = 'Backstage: ';
 
 /**
- * Maps preset ids → ruleset payload (without owner/repo). Targets `refs/heads/<branch>`.
+ * Maps preset ids → ruleset payload (without owner/repo).
+ * Targets `refs/heads/<branch>` except bundled defaults that follow `~DEFAULT_BRANCH`.
  */
 export function buildBranchRulesetPreset(
   presetId: string,
   branchName: string,
 ): RepoRulesetPayload {
   const include = [`refs/heads/${branchName}`];
-  const conditions = {
+  const conditionsBranch = {
     ref_name: {
       include,
       exclude: [] as string[],
@@ -31,7 +29,7 @@ export function buildBranchRulesetPreset(
         name: `${rulesetNamePrefix}Require pull request`,
         target: 'branch',
         enforcement: 'active',
-        conditions,
+        conditions: conditionsBranch,
         rules: [
           {
             type: 'pull_request',
@@ -50,7 +48,7 @@ export function buildBranchRulesetPreset(
         name: `${rulesetNamePrefix}Linear history`,
         target: 'branch',
         enforcement: 'active',
-        conditions,
+        conditions: conditionsBranch,
         rules: [{ type: 'required_linear_history' }],
       };
     case 'block-force-push':
@@ -58,31 +56,15 @@ export function buildBranchRulesetPreset(
         name: `${rulesetNamePrefix}Block force pushes`,
         target: 'branch',
         enforcement: 'active',
-        conditions,
+        conditions: conditionsBranch,
         rules: [{ type: 'non_fast_forward' }],
+      };
+    case 'strict-default-branch-bundle':
+      return {
+        ...DEFAULT_REPO_CREATION_RULESET,
+        name: `${rulesetNamePrefix}Strict default-branch bundle`,
       };
     default:
       throw new Error(`Unknown branch ruleset preset: ${presetId}`);
   }
 }
-
-/** Ordered list for UI and validation. */
-export const BRANCH_RULESET_PRESET_META: BranchRulesetPresetMeta[] = [
-  {
-    id: 'require-pull-request',
-    description:
-      'Require at least one approving review before merging to the default branch.',
-  },
-  {
-    id: 'require-linear-history',
-    description: 'Prevent merge commits on the default branch (linear history).',
-  },
-  {
-    id: 'block-force-push',
-    description: 'Disallow force pushes to the default branch.',
-  },
-];
-
-export const BRANCH_RULESET_PRESET_IDS = new Set(
-  BRANCH_RULESET_PRESET_META.map(p => p.id),
-);

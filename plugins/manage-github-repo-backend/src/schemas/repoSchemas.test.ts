@@ -61,4 +61,10 @@ describe('repoSchemas', () => {
       settings: { deleteBranchOnMerge: false },
     });
   });
+
+  it('rejects unknown repo setting keys', () => {
+    expect(() =>
+      githubRepoSettingsSchema.parse({ notARealGithubField123: true }),
+    ).toThrow();
+  });
 });

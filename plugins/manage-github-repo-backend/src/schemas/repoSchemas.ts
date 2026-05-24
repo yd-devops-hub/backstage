@@ -1,23 +1,14 @@
 import { z } from 'zod/v3';
 
-/**
- * Repository settings applied via this plugin. Add new optional fields here as GitHub
- * capabilities are exposed — clients may send additional keys only after the backend
- * understands them (validated explicitly below).
- */
-export const githubRepoSettingsSchema = z.object({
-  /** GitHub default branch name (branch must exist). */
-  defaultBranch: z.string().min(1).optional(),
-  /** When PRs merge, delete the head branch. */
-  deleteBranchOnMerge: z.boolean().optional(),
-  /**
-   * Named branch ruleset presets (repository rulesets API).
-   * See {@link BRANCH_RULESET_PRESETS} on the backend.
-   */
-  branchRulesetPresetIds: z.array(z.string().min(1)).optional(),
-});
+import {
+  githubRepoSettingsSchema as commonGithubRepoSettingsSchema,
+  type GithubRepoSettings,
+} from '@internal/backstage-plugin-manage-github-repo-common';
 
-export type GithubRepoSettings = z.infer<typeof githubRepoSettingsSchema>;
+/** Validates approval payloads — built from composed registry schema. */
+export const githubRepoSettingsSchema = commonGithubRepoSettingsSchema;
+
+export type { GithubRepoSettings };
 
 export const createRepoBodySchema = z.object({
   /** Organization slug; falls back to plugin config / catalog-derived default. */
@@ -43,7 +34,7 @@ export const updateRepoBodySchema = z.object({
 
 export type UpdateRepoBody = z.infer<typeof updateRepoBodySchema>;
 
-/** Payload for approval-gated repo settings updates (`github-repo-settings-update`). */
+/** Payload for approval-gated repo settings updates. */
 export const githubRepoSettingsUpdatePayloadSchema = z.object({
   owner: z.string().min(1),
   repo: z.string().min(1),

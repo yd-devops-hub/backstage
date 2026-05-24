@@ -1,10 +1,11 @@
+import { useEffect } from 'react';
 import {
   AppRootElementBlueprint,
   FrontendFeature,
   PageBlueprint,
 } from '@backstage/frontend-plugin-api';
 import { SignInPage } from '@backstage/core-components';
-import { githubAuthApiRef } from '@backstage/core-plugin-api';
+import { appThemeApiRef, githubAuthApiRef, useApi } from '@backstage/core-plugin-api';
 import {
   SignInPageBlueprint,
   ThemeBlueprint,
@@ -18,6 +19,28 @@ import { apertureTheme } from '../theme/aperture';
 import { apertureBuiCss } from '../theme/apertureBui';
 import { apis } from '../apis';
 import { orgGithubTeamLabelsTranslation } from './translations';
+
+const DEFAULT_THEME_ID = 'aperture';
+
+const DefaultApertureTheme = () => {
+  const appThemeApi = useApi(appThemeApiRef);
+
+  useEffect(() => {
+    const activeThemeId = appThemeApi.getActiveThemeId();
+    if (!activeThemeId || activeThemeId === 'light') {
+      appThemeApi.setActiveThemeId(DEFAULT_THEME_ID);
+    }
+  }, [appThemeApi]);
+
+  return null;
+};
+
+const defaultApertureThemeElement = AppRootElementBlueprint.make({
+  name: 'default-aperture-theme',
+  params: {
+    element: <DefaultApertureTheme />,
+  },
+});
 
 // SignalsDisplay must be registered manually — @backstage/plugin-signals only
 // exposes api:signals in its NFS alpha, with no app-root-element extension
@@ -74,6 +97,7 @@ export const appOverride: FrontendFeature = appPlugin.withOverrides({
     ...apis,
     githubSignInPage,
     apertureThemeExtension,
+    defaultApertureThemeElement,
     signalsDisplayElement,
     orgGithubTeamLabelsTranslation,
   ],
